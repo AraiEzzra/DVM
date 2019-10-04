@@ -207,7 +207,7 @@ export const opSAR = (state: State) => {
 
 export const opSha3 = (state: State) => {
     const [offset, length] = state.stack.popN(2);
-    const data = state.memory.read(Number(offset), Number(length));
+    const data = state.memory.get(Number(offset), Number(length));
     const r = toBigIntBE(keccak256(data));
 
     state.stack.push(r);
@@ -340,7 +340,7 @@ export const opPc = (state: State) => {
 
 export const opMload = (state: State) => {
     const pos = state.stack.pop();
-    const buffer = state.memory.read(Number(pos), 32);
+    const buffer = state.memory.get(Number(pos), 32);
     const r = toBigIntBE(buffer);
     state.stack.push(r);
 };
@@ -350,7 +350,7 @@ export const opMstore = (state: State) => {
     const buffer = toBufferBE(word, 32);
 
     const offsetNum = Number(offset);
-    state.memory.write(offsetNum, 32, buffer);
+    state.memory.set(offsetNum, 32, buffer);
 };
 
 export const opMstore8 = (state: State) => {
@@ -359,7 +359,7 @@ export const opMstore8 = (state: State) => {
     const buffer = toBufferBE(byte & U256.BYTE, 1);
     const offsetNum = Number(offset);
 
-    state.memory.write(offsetNum, 1, buffer);
+    state.memory.set(offsetNum, 1, buffer);
 };
 
 export const opMsize = (state: State) => {
@@ -368,7 +368,7 @@ export const opMsize = (state: State) => {
 
 export const opReturn = (state: State) => {
     const [offset, length] = state.stack.popN(2);
-    const value = state.memory.read(Number(offset), Number(length));
+    const value = state.memory.get(Number(offset), Number(length));
     state.eei.finish(value);
 };
 
@@ -389,7 +389,7 @@ export const opCodeCopy = (state: State) => {
     const lengthNum = Number(length);
 
     const data = getDataSlice(state.eei.getCode(), codeOffsetNum, lengthNum);
-    state.memory.write(memOffsetNum, lengthNum, data);
+    state.memory.set(memOffsetNum, lengthNum, data);
 };
 
 export const opAddress = (state: State) => {
@@ -405,7 +405,7 @@ export const opCallDataCopy = (state: State) => {
     const lengthNum = Number(length);
 
     const data = getDataSlice(state.eei.getCallData(), codeOffsetNum, lengthNum);
-    state.memory.write(memOffsetNum, lengthNum, data);
+    state.memory.set(memOffsetNum, lengthNum, data);
 };
 
 export const opCallDataSize = (state: State) => {
@@ -432,7 +432,7 @@ export const opLog = (state: State) => {
     const topicsBuf = topics.map(item => toBufferBE(item, 32));
     const mem = memLength === 0n
         ? Buffer.alloc(0)
-        : state.memory.read(Number(memOffset), Number(memLength));
+        : state.memory.get(Number(memOffset), Number(memLength));
 
     state.eei.log(mem, topicsCount, topicsBuf);
 };

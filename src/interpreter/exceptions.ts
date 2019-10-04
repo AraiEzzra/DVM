@@ -13,6 +13,7 @@ export class ERROR {
     static CREATE_COLLISION = 'create collision';
     static STOP = 'stop';
     static REFUND_EXHAUSTED = 'refund exhausted';
+    static INVALID_MEMORY = 'invalid memory: store empty';    
 }
 
 export class VmError extends Error {}

@@ -1,78 +1,37 @@
+import { ERROR, VmError } from 'src/interpreter/exceptions';
+import { bufferPadEnd } from 'src/interpreter/utils';
 
-/**
- * Memory implements a simple memory model
- * for the ethereum virtual machine.
- */
 export class Memory {
 
-    // TODO replace to Buffer
-    _store: number[];
+    private store: Buffer;
 
     constructor() {
-        this._store = [];
+        this.store = Buffer.alloc(0);
     }
 
     get length(): number {
-        return this._store.length;
+        return this.store.length;
     }
 
-    /**
-     * Extends the memory given an offset and size. Rounds extended
-     * memory to word-size.
-     */
-    extend(offset: number, size: number) {
-        if (size === 0) {
-            return;
-        }
-
-        const newSize = ceil(offset + size, 32);
-        const sizeDiff = newSize - this._store.length;
-        if (sizeDiff > 0) {
-            this._store = this._store.concat(new Array(sizeDiff).fill(0));
+    set(offset: number, size: number, value: Buffer) {
+        if (size > 0) {
+            if (offset + size > this.store.length) {
+                throw new VmError(ERROR.INVALID_MEMORY);
+            }
+            for (let i = 0; i < size; i++) {
+                this.store[offset + i] = value[i];
+            }
         }
     }
 
-    /**
-     * Writes a byte array with length `size` to memory, starting from `offset`.
-     * @param offset - Starting position
-     * @param size - How many bytes to write
-     * @param value - Value
-     */
-    write(offset: number, size: number, value: Buffer) {
-        if (size === 0) {
-            return;
-        }
-
-        for (let i = 0; i < size; i++) {
-            this._store[offset + i] = value[i];
-        }
+    get(offset: number, size: number): Buffer {
+        const buffer = this.store.slice(offset, offset + size);
+        return bufferPadEnd(buffer, size);
     }
 
-    /**
-     * Reads a slice of memory from `offset` till `offset + size` as a `Buffer`.
-     * It fills up the difference between memory's length and `offset + size` with zeros.
-     * @param offset - Starting position
-     * @param size - How many bytes to read
-     */
-    read(offset: number, size: number): Buffer {
-        if (size === 0) {
-            return Buffer.alloc(0);
+    resize(size: number) {
+        if (this.store.length < size) {
+            this.store = bufferPadEnd(this.store, size);
         }
-
-        const loaded = this._store.slice(offset, offset + size);
-        // Fill the remaining length with zeros
-        for (let i = loaded.length; i < size; i++) {
-            loaded[i] = 0;
-        }
-        return Buffer.from(loaded);
     }
 }
-
-const ceil = (value: number, ceiling: number): number => {
-    const r = value % ceiling;
-    if (r === 0) {
-        return value;
-    } else {
-        return value + ceiling - r;
-    }
-};
