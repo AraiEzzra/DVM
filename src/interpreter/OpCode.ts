@@ -302,3 +302,15 @@ export const opCodeToHex = (opCode: OpCode): string => `0x${Number(opCode).toStr
 export const isPush = (opCode: OpCode): boolean => {
     return opCode >= OpCode.PUSH1 && opCode <= OpCode.PUSH32;
 };
+
+// Returns number of bytes to read for `PUSHN` instruction
+// PUSH1 -> 1
+export const pushBytes = (byte: number) => byte - OpCode.PUSH1 + 1;
+
+// Returns stack position of item to SWAP top with
+// SWAP1 -> 1
+export const swapPosition = (byte: number) => byte - OpCode.SWAP1 + 1;
+
+// Returns stack position of item to duplicate
+// DUP1 -> 0
+export const dupPosition = (byte: number) => byte - OpCode.DUP1 + 1;

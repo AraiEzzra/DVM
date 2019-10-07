@@ -6,6 +6,8 @@ export type Result = {
     value?: Buffer;
 };
 
+// https://github.com/ewasm/design/blob/master/eth_interface.md
+// TODO move this logic to context
 export class EEI {
 
     context: IContext;

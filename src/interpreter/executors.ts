@@ -1,4 +1,5 @@
 import { toBigIntBE, toBufferBE } from 'bigint-buffer';
+import { dupPosition, pushBytes, swapPosition } from 'src/interpreter/OpCode';
 import { State } from 'src/interpreter/State';
 import { VmError, ERROR } from 'src/interpreter/exceptions';
 import { U256 } from 'src/interpreter/U256';
@@ -214,7 +215,7 @@ export const opSha3 = (state: State) => {
 };
 
 export const opPush = (state: State) => {
-    const numToPush = state.opCode - 0x5f;
+    const numToPush = pushBytes(state.opCode);
 
     const value = state.eei.getCode()
         .slice(state.programCounter, state.programCounter + numToPush);
@@ -224,12 +225,12 @@ export const opPush = (state: State) => {
 };
 
 export const opDup = (state: State) => {
-    const stackPos = state.opCode - 0x7f;
+    const stackPos = dupPosition(state.opCode);
     state.stack.dup(stackPos);
 };
 
 export const opSwap = (state: State) => {
-    const stackPos = state.opCode - 0x8f;
+    const stackPos = swapPosition(state.opCode);
     state.stack.swap(stackPos);
 };
 

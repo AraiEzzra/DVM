@@ -1,6 +1,6 @@
 import { IContext } from 'src/IContext';
 import { IStorage } from 'src/IStorage';
-import { isPush, OpCode } from 'src/interpreter/OpCode';
+import { OpCode, isPush, pushBytes } from 'src/interpreter/OpCode';
 import { Instruction } from 'src/interpreter/Instruction';
 import { InstructionMap } from 'src/interpreter/InstructionMap';
 import { State } from 'src/interpreter/State';
@@ -67,15 +67,16 @@ export class Interpreter {
         return instruction;
     }
 
-    private getValidJumpDests(code: Buffer): Set<number> {
+    private getValidJumpDests(codes: Buffer): Set<number> {
         const jumps = new Set<number>();
 
-        for (let i = 0; i < code.length; i++) {
-            const instruction = this.getInstruction(code[i]);
+        for (let i = 0; i < codes.length; i++) {
+            const code = codes[i];
+            const instruction = this.getInstruction(code);
 
             // no destinations into the middle of PUSH
             if (isPush(instruction.opCode)) {
-                i += code[i] - 0x5f;
+                i += pushBytes(code);
             }
 
             if (instruction.opCode === OpCode.JUMPDEST) {
