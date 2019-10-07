@@ -1,5 +1,6 @@
-import { Stack } from 'src/Stack';
-import { STACK_MAX_SIZE, STACK_MAX_VALUE } from 'src/constants';
+import { Stack } from 'src/interpreter/Stack';
+import { STACK_MAX_SIZE } from 'src/constants';
+import { U256 } from 'src/interpreter/U256';
 import { expect } from 'chai';
 
 describe('Stack', () => {
@@ -58,7 +59,7 @@ describe('Stack', () => {
 
     it('should throw on overflow', () => {
         const stack = new Stack();
-        for (let i=0; i < STACK_MAX_SIZE; i++) {
+        for (let i = 0; i < STACK_MAX_SIZE; i++) {
             stack.push(BigInt(1));
         }
 
@@ -122,7 +123,7 @@ describe('Stack', () => {
     it('should validate value overflow', () => {
         const stack = new Stack();
 
-        expect(() => stack.push(STACK_MAX_VALUE + BigInt(1))).to.throw();
+        expect(() => stack.push(U256.MAX_VALUE + BigInt(1))).to.throw();
     });
 
 });
