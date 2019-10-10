@@ -1,8 +1,15 @@
-export type Address = string;
-
 export interface IStorage {
-    getValue(address: Address, key: Buffer): Buffer;
-    setValue(address: Address, key: Buffer, value: Buffer): void;
+    subBalance(address: Buffer, value: bigint);
+    getBalance(address: Buffer): bigint;
+    addBalance(address: Buffer, value: bigint);
+
+    getNonce(address: Buffer): bigint;
+    setNonce(address: Buffer, value: bigint);
+
+    getCode(address: Buffer): Buffer;
+
+    getValue(address: Buffer, key: Buffer): Buffer;
+    setValue(address: Buffer, key: Buffer, value: Buffer): void;
     size: number;
     toString(): string;
 }

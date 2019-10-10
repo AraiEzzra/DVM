@@ -2,7 +2,7 @@ import { IContext } from 'src/IContext';
 import { IStorage } from 'src/IStorage';
 import { OpCode, isPush, pushBytes } from 'src/interpreter/OpCode';
 import { Instruction } from 'src/interpreter/Instruction';
-import { InstructionMap } from 'src/interpreter/InstructionMap';
+import { Instructions } from 'src/interpreter/Instructions';
 import { State } from 'src/interpreter/State';
 import { EEI } from 'src/EEI';
 import { ERROR, VmError, VmStop } from 'src/interpreter/exceptions';
@@ -60,7 +60,7 @@ export class Interpreter {
     }
 
     private getInstruction(opCode: OpCode): Instruction {
-        const instruction = InstructionMap.get(opCode);
+        const instruction = Instructions[opCode] as Instruction;
         if (instruction === undefined) {
             throw new VmError(ERROR.INVALID_OPCODE(opCode));
         }

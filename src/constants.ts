@@ -27,4 +27,5 @@ export class GAS {
     static LogTopicGas = 375n; // Multiplied by the * of the LOG*, per LOG transaction. e.g.
                                // LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
     static LogDataGas = 8n; // Per byte in a LOG* operation's data.
+    static BalanceGasFrontier = 400n; // The cost of a BALANCE operation
 }

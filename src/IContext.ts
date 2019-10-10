@@ -1,9 +1,9 @@
 export interface IContext {
     // The current block's coinbase address, to be returned by the COINBASE instruction.
-    currentCoinbase: bigint;
+    currentCoinbase: Buffer;
 
     // The current block's difficulty, to be returned by the DIFFICULTY instruction.
-    currentDifficulty: bigint;
+    currentDifficulty: Buffer;
 
     // The current block's gas limit.
     currentGasLimit: bigint;
@@ -15,7 +15,7 @@ export interface IContext {
     currentTimestamp: bigint;
 
     // The previous block's hash.
-    previousHash: bigint;
+    previousHash: Buffer;
 
     // The address of the account under which the code is executing, to be returned by the ADDRESS instruction.
     address: Buffer;

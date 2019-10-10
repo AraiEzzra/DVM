@@ -21,7 +21,8 @@ import {
     useGasSha3,
     useGasCodeCopy,
     useGasCallDataCopy,
-    useGasLog
+    useGasLog,
+    useGasBalance
  } from 'src/interpreter/useGas';
 
  import {
@@ -91,7 +92,8 @@ import {
     opCodeSize,
     opGasprice,
     opOrigin,
-    opLog
+    opLog,
+    opBalance
 } from 'src/interpreter/executors';
 
 export const InstructionList: Array<Instruction> = [
@@ -237,8 +239,8 @@ export const InstructionList: Array<Instruction> = [
     }),
     new InstructionSync({
         opCode: OpCode.BALANCE,
-        execute: opInvalid,
-        useGas: useGasInvalid
+        execute: opBalance,
+        useGas: useGasBalance
     }),
     new InstructionSync({
         opCode: OpCode.ORIGIN,
@@ -806,4 +808,7 @@ export const InstructionList: Array<Instruction> = [
     })
 ];
 
-export const InstructionMap: Map<OpCode, Instruction> = new Map(InstructionList.map(item => [item.opCode, item]));
+export const Instructions = InstructionList.reduce((instructions, item) => {
+    instructions[item.opCode] = item;
+    return instructions;
+}, {});
