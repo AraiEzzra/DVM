@@ -14,8 +14,10 @@ export class ERROR {
     static STOP = 'stop';
     static REFUND_EXHAUSTED = 'refund exhausted';
     static INVALID_MEMORY = 'invalid memory: store empty';    
+    static DEPTH = 'max call depth exceeded';
+    static INSUFFICIENT_BALANCE = 'insufficient balance for transfer';
+    static GAS_LIMIT_REACHED = 'gas limit reached';
+    static INSUFFICIENT_BALANCE_FOR_GAS = 'insufficient balance to pay for gas';
 }
 
 export class VmError extends Error {}
-
-export class VmStop extends Error {}

@@ -2,8 +2,6 @@ import fs from 'fs';
 import chai from 'chai';
 import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { Transaction } from 'ethereumjs-tx';
-import { TransactionJSON } from 'test/vm/VmJSON';
 
 chai.use(chaiAsPromised);
 
@@ -48,23 +46,4 @@ export const loadTestCases = <T>(name: string): Array<T> => {
         const txt = fs.readFileSync(`${path}/${file}`, 'utf8');
         return JSON.parse(txt);
     });
-};
-
-export const makeTx = (txData: any): Transaction => {
-    const tx = new Transaction();
-    tx.nonce = hexToBuffer(txData.nonce);
-    tx.gasPrice = hexToBuffer(txData.gasPrice);
-    tx.gasLimit = hexToBuffer(txData.gasLimit);
-    tx.to = hexToBuffer(txData.to);
-    tx.value = hexToBuffer(txData.value);
-    tx.data = hexToBuffer(txData.data);
-    if (txData.secretKey) {
-        const privKey = hexToBuffer(txData.secretKey);
-        tx.sign(privKey);
-    } else {
-        tx.v = hexToBuffer(txData.v);
-        tx.r = hexToBuffer(txData.r);
-        tx.s = hexToBuffer(txData.s);
-    }
-    return tx;
 };

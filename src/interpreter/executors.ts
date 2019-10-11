@@ -1,18 +1,18 @@
 import { toBigIntBE, toBufferBE } from 'bigint-buffer';
-import { dupPosition, pushBytes, swapPosition } from 'src/interpreter/OpCode';
+import { dupPosition, pushBytes, swapPosition, logBytes } from 'src/interpreter/OpCode';
 import { State } from 'src/interpreter/State';
 import { VmError, ERROR } from 'src/interpreter/exceptions';
 import { U256 } from 'src/interpreter/U256';
 import { keccak256 } from 'src/interpreter/hash';
 import { getDataSlice, bigIntToBuffer, addressToBuffer } from 'src/interpreter/utils';
+import { maxCallGas } from 'src/interpreter/useGas';
+import { PARAMS } from 'src/constants';
 
 export const opInvalid = (state: State) => {
-    throw new VmError(ERROR.INVALID_OPCODE(state.opCode));        
+    throw new VmError(ERROR.INVALID_OPCODE(state.opCode));
 };
 
-export const opStop = (state: State) => {
-    state.eei.finish();
-};
+export const opStop = (state: State) => {};
 
 export const opAdd = (state: State) => {
     const [a, b] = state.stack.popN(2);
@@ -217,7 +217,7 @@ export const opSha3 = (state: State) => {
 export const opPush = (state: State) => {
     const numToPush = pushBytes(state.opCode);
 
-    const value = state.eei.getCode()
+    const value = state.contract.code
         .slice(state.programCounter, state.programCounter + numToPush);
 
     state.programCounter += numToPush;
@@ -238,7 +238,7 @@ export const opSload = (state: State) => {
     let key = state.stack.pop();
     const keyBuffer = toBufferBE(key, 32);
 
-    const valueBuffer = state.storage.getValue(state.eei.getAddress(), keyBuffer);
+    const valueBuffer = state.vm.storage.getValue(state.contract.address, keyBuffer);
     const value = toBigIntBE(valueBuffer);
 
     state.stack.push(value);
@@ -249,7 +249,7 @@ export const opSstore = (state: State) => {
     const keyBuffer = toBufferBE(key, 32);
     const valueBuffer = bigIntToBuffer(value);
 
-    state.storage.setValue(state.eei.getAddress(), keyBuffer, valueBuffer);
+    state.vm.storage.setValue(state.contract.address, keyBuffer, valueBuffer);
 };
 
 export const opJumpdest = (state: State) => {};
@@ -258,7 +258,7 @@ export const opJump = (state: State) => {
     const dest = state.stack.pop();
     const destNum = Number(dest);
 
-    if (destNum > state.eei.getCode().length) {
+    if (destNum > state.contract.code.length) {
         throw new VmError(ERROR.INVALID_JUMP);
     }
 
@@ -275,10 +275,6 @@ export const opJumpi = (state: State) => {
     if (cond !== 0n) {
         const destNum = Number(dest);
 
-        if (destNum > state.eei.getCode().length) {
-            throw new VmError(ERROR.INVALID_JUMP);
-        }
-
         if (!state.validJumps.has(destNum)) {
             throw new VmError(ERROR.INVALID_JUMP);
         }
@@ -290,43 +286,36 @@ export const opJumpi = (state: State) => {
 export const opCallDataLoad = (state: State) => {
     const pos = state.stack.pop();
 
-    if (pos > state.eei.getCallDataSize()) {
-        state.stack.push(0n);
-        return;
-    }
-
     const offset = Number(pos);
-    const data = getDataSlice(state.eei.getCallData(), offset, 32);
+    const data = getDataSlice(state.contract.input, offset, 32);
     const result = toBigIntBE(data);
 
     state.stack.push(result);
 };
 
 export const opCallValue = (state: State) => {
-    const result = toBigIntBE(state.eei.getCallValue());
-    state.stack.push(result);
+    state.stack.push(state.contract.value);
 };
 
 export const opNumber = (state: State) => {
-    state.stack.push(state.eei.getBlockNumber());
+    state.stack.push(state.vm.context.blockNumber);
 };
 
 export const opTimestamp = (state: State) => {
-    state.stack.push(state.eei.getBlockTimestamp());
+    state.stack.push(state.vm.context.time);
 };
 
 export const opCoinbase = (state: State) => {
-    const result = toBigIntBE(state.eei.getBlockCoinbase());
+    const result = toBigIntBE(state.vm.context.coinbase);
     state.stack.push(result);
 };
 
 export const opDifficulty = (state: State) => {
-    const result = toBigIntBE(state.eei.getBlockDifficulty());
-    state.stack.push(result);
+    state.stack.push(state.vm.context.difficulty);
 };
 
 export const opGasLimit = (state: State) => {
-    state.stack.push(state.eei.getBlockGasLimit());
+    state.stack.push(state.vm.context.gasLimit);
 };
 
 export const opPop = (state: State) => {
@@ -368,15 +357,15 @@ export const opMsize = (state: State) => {
 export const opReturn = (state: State) => {
     const [offset, length] = state.stack.popN(2);
     const value = state.memory.get(Number(offset), Number(length));
-    state.eei.finish(value);
+    state.returnData = value;
 };
 
 export const opGas = (state: State) => {
-    state.stack.push(state.eei.getGasLeft());
+    state.stack.push(state.contract.gas);
 };
 
 export const opCaller = (state: State) => {
-    const result = toBigIntBE(state.eei.getCaller());
+    const result = toBigIntBE(state.contract.callerAddress);
     state.stack.push(result);
 };
 
@@ -387,12 +376,12 @@ export const opCodeCopy = (state: State) => {
     const codeOffsetNum = Number(codeOffset);
     const lengthNum = Number(length);
 
-    const data = getDataSlice(state.eei.getCode(), codeOffsetNum, lengthNum);
+    const data = getDataSlice(state.contract.code, codeOffsetNum, lengthNum);
     state.memory.set(memOffsetNum, lengthNum, data);
 };
 
 export const opAddress = (state: State) => {
-    const result = toBigIntBE(state.eei.getAddress());
+    const result = toBigIntBE(state.contract.address);
     state.stack.push(result);
 };
 
@@ -403,46 +392,90 @@ export const opCallDataCopy = (state: State) => {
     const codeOffsetNum = Number(codeOffset);
     const lengthNum = Number(length);
 
-    const data = getDataSlice(state.eei.getCallData(), codeOffsetNum, lengthNum);
+    const data = getDataSlice(state.contract.input, codeOffsetNum, lengthNum);
     state.memory.set(memOffsetNum, lengthNum, data);
 };
 
 export const opCallDataSize = (state: State) => {
-    state.stack.push(state.eei.getCallDataSize());
+    const result = BigInt(state.contract.input.length);
+    state.stack.push(result);
 };
 
 export const opCodeSize = (state: State) => {
-    state.stack.push(state.eei.getCodeSize());
+    const result = BigInt(state.contract.code.length);
+    state.stack.push(result);
 };
 
 export const opGasprice = (state: State) => {
-    state.stack.push(state.eei.getTxGasPrice());
+    state.stack.push(state.vm.context.gasPrice);
 };
 
 export const opOrigin = (state: State) => {
-    const result = toBigIntBE(state.eei.getTxOrigin());
+    const result = toBigIntBE(state.vm.context.origin);
     state.stack.push(result);
 };
 
 export const opLog = (state: State) => {
     const [memOffset, memLength] = state.stack.popN(2);
-    const topicsCount = state.opCode - 0xa0;
+    const topicsCount = logBytes(state.opCode);
     const topics = state.stack.popN(topicsCount);
     const topicsBuf = topics.map(item => toBufferBE(item, 32));
     const mem = memLength === 0n
         ? Buffer.alloc(0)
         : state.memory.get(Number(memOffset), Number(memLength));
 
-    state.eei.log(mem, topicsCount, topicsBuf);
+    state.vm.storage.addLog({
+        address: state.contract.address,
+        topics: topicsBuf,
+        data: mem,
+        blockNumber: Number(state.vm.context.blockNumber)
+    });
 };
 
 export const opSuicide = (state: State) => {
-                    
+    const address = state.stack.pop();
+    const balance = state.vm.storage.getBalance(state.contract.address);
+    state.vm.storage.addBalance(addressToBuffer(address), balance);
+    
+    state.vm.storage.suicide(state.contract.address);
 };
 
 export const opBalance = (state: State) => {
     const address = state.stack.pop();
-    const result = state.storage.getBalance(addressToBuffer(address));
+    const result = state.vm.storage.getBalance(addressToBuffer(address));
 
     state.stack.push(result);
+};
+
+export const opCall = async (state: State) => {
+    const [
+        gasLimit,
+        toAddress,
+        value,
+        inOffset,
+        inLength,
+        outOffset,
+        outLength,
+    ] = state.stack.popN(7);
+
+    const toAddressBuf = addressToBuffer(toAddress);
+
+    let gas = maxCallGas(gasLimit, state.contract.gas);
+
+    const data = inLength === 0n
+        ? Buffer.alloc(0)
+        : state.memory.get(Number(inOffset), Number(inLength));
+
+    // TODO    
+    if (value !== 0n) {
+        gas += PARAMS.CallStipend;
+    }
+
+    const result = await state.vm.call(state.contract, toAddressBuf, data, gas, value);
+
+    state.stack.push(0n);
+
+    state.contract.gas += result.leftOverGas;
+
+    state.memory.set(Number(outOffset), Number(outLength), result.returnData);
 };

@@ -19,3 +19,18 @@ export const useMemoryCallDataCopy = (state: State) => {
     const [memOffset, codeOffset, length] = state.stack.peekN(3);
     state.memory.resize(Number(memOffset + length));
 };
+
+export const useMemoryCall = (state: State) => {
+    const [
+        gasLimit,
+        toAddress,
+        value,
+        inOffset,
+        inLength,
+        outOffset,
+        outLength,
+    ] = state.stack.peekN(7);
+
+    
+    
+};

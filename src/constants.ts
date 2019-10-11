@@ -1,6 +1,6 @@
 export const STACK_MAX_SIZE = 1024;
 
-export class GAS {
+export class PARAMS {
     static ZeroGas = 0n;
     static BaseGas = 2n;
     static VeryLowGas = 3n;
@@ -28,4 +28,19 @@ export class GAS {
                                // LOG0 incurs 0 * c_txLogTopicGas, LOG4 incurs 4 * c_txLogTopicGas.
     static LogDataGas = 8n; // Per byte in a LOG* operation's data.
     static BalanceGasFrontier = 400n; // The cost of a BALANCE operation
+    static CallCreateDepth = 1024; // Maximum depth of call/create stack.
+
+    static TxGas = 21000n; // Per transaction not creating a contract.
+                           // NOTE: Not payable on data of calls between transactions.
+
+    static TxDataZeroGas = 4n; // Per byte of data attached to a transaction that equals zero.
+                               // NOTE: Not payable on data of calls between transactions.
+
+    static TxDataNonZeroGasFrontier = 68n; // Per byte of data attached to a transaction that is not equal to zero.
+                                           // NOTE: Not payable on data of calls between transactions.
+
+    static CallGasFrontier = 40n;  // Once per CALL operation & message call transaction.
+    static CallValueTransferGas = 9000n; // Paid for CALL when the value transfer is non-zero.
+    static CallNewAccountGas = 25000n; // Paid for CALL when the destination address didn't exist prior.
+    static CallStipend = 2300n; // Free gas given at beginning of call.
 }

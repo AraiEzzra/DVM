@@ -23,6 +23,8 @@ export type InstructionData = {
     execute: ExecutorSync | ExecutorAsync;
     useGas: UseGas;
     useMemory?: UseMemory;
+    halts?: boolean;
+    jumps?: boolean;
 };
 
 export class Instruction {
@@ -31,6 +33,8 @@ export class Instruction {
     execute: ExecutorSync | ExecutorAsync;
     useGas: UseGas;
     useMemory?: UseMemory;
+    halts?: boolean;
+    jumps?: boolean;
 
     constructor(data: InstructionData) {
         this.opCode = data.opCode;
@@ -38,6 +42,8 @@ export class Instruction {
         this.execute = data.execute;
         this.useGas = data.useGas;
         this.useMemory = data.useMemory;
+        this.halts = Boolean(data.halts);
+        this.jumps = Boolean(data.jumps);
     }
 }
 
@@ -46,17 +52,13 @@ export type InstructionSyncData = {
     execute: ExecutorSync;
     useGas: UseGas;
     useMemory?: UseMemory; 
+    halts?: boolean;
+    jumps?: boolean;
 };
 
 export class InstructionSync extends Instruction {
-    constructor(data: InstructionSyncData) {
-        super({
-            opCode: data.opCode,
-            execute: data.execute,
-            isAsync: false,
-            useGas: data.useGas,
-            useMemory: data.useMemory
-        });
+    constructor(syncData: InstructionSyncData) {
+        super({ ...syncData, isAsync: false });
     }
 }
 
@@ -65,16 +67,12 @@ export type InstructionAsyncData = {
     execute: ExecutorAsync;
     useGas: UseGas; 
     useMemory?: UseMemory;
+    halts?: boolean;
+    jumps?: boolean;
 };
 
 export class InstructionAsync extends Instruction {
-    constructor(data: InstructionAsyncData) {
-        super({
-            opCode: data.opCode,
-            execute: data.execute,
-            isAsync: true,
-            useGas: data.useGas,
-            useMemory: data.useMemory
-        });
+    constructor(asyncData: InstructionAsyncData) {
+        super({ ...asyncData, isAsync: true });
     }
 }

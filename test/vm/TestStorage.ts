@@ -1,10 +1,11 @@
 import { IStorage } from 'src/IStorage';
 import { hexToBuffer } from 'test/helpers';
-import { AccountJSON } from 'test/vm/VmJSON';
+import { AccountJSON } from 'test/GeneralStateTests/TestsJSON';
 import { MerklePatriciaTree } from 'test/vm/MerklePatriciaTree';
 import * as rlp from 'rlp';
 import { keccak256 } from 'src/interpreter/hash';
 import { bigIntToBuffer } from 'src/interpreter/utils';
+import { Log } from 'src/Log';
 
 export type Account = {
     address: Buffer;
@@ -17,6 +18,9 @@ export type Account = {
 export class TestStorage implements IStorage {
 
     readonly data: Map<string, Account>;
+
+    // TODO
+    log: Log;
 
     constructor(data: {[address: string]: AccountJSON} = {}) {
         this.data = new Map();
@@ -48,6 +52,35 @@ export class TestStorage implements IStorage {
     private getAccount(address: Buffer): Account {
         const key = address.toString('hex');
         return this.data.get(key);
+    }
+        
+    revertToSnapshot(value: any) {
+
+    }
+
+    createAccount(address: Buffer) {
+        this.putAccount(address.toString('hex'), {
+            code: '',
+            balance: '',
+            nonce: '',
+            storage: {}
+        });
+    }
+
+    setCode(address: Buffer, code: Buffer) {
+        throw new Error('Method not implemented.');
+    }
+    snapshot() {        
+    }
+
+    exist(address: Buffer): boolean {
+        const key = address.toString('hex');
+        return this.data.has(key);
+    }
+
+    suicide(address: Buffer) {
+        const key = address.toString('hex');
+        this.data.delete(key);
     }
 
     private getOrNewAccount(address: Buffer): Account {
@@ -166,5 +199,21 @@ export class TestStorage implements IStorage {
 
     toString(): string {
         return '';
+    }
+
+    addLog(log: Log) {
+        log.txHash = Buffer.alloc(0);
+        log.blockHash = Buffer.alloc(0);
+        log.txIndex = 0;
+        log.index = 0;
+
+        this.log = log;
+
+        const k = rlp.encode(Object.keys(log));
+
+        console.log(log)
+        console.log(k.toString('hex'));
+
+
     }
 }

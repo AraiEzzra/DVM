@@ -1,5 +1,6 @@
 import { OpCode } from 'src/interpreter/OpCode';
 import { Instruction, InstructionSync, InstructionAsync } from 'src/interpreter/Instruction';
+import { VmError, ERROR } from 'src/interpreter/exceptions';
 
 import { 
     useGasInvalid,
@@ -22,14 +23,17 @@ import {
     useGasCodeCopy,
     useGasCallDataCopy,
     useGasLog,
-    useGasBalance
+    useGasBalance,
+    useGasCall,
+    useGasSuicide
  } from 'src/interpreter/useGas';
 
  import {
      useMemoryMstore,
      useMemoryMstore8,
      useMemoryCodeCopy,
-     useMemoryCallDataCopy
+     useMemoryCallDataCopy,
+     useMemoryCall
  } from 'src/interpreter/useMemory';
 
 import {
@@ -93,14 +97,17 @@ import {
     opGasprice,
     opOrigin,
     opLog,
-    opBalance
+    opBalance,
+    opCall,
+    opSuicide
 } from 'src/interpreter/executors';
 
 export const InstructionList: Array<Instruction> = [
     new InstructionSync({
         opCode: OpCode.STOP,
         execute: opStop,
-        useGas: useGasZero
+        useGas: useGasZero,
+        halts: true
     }),
     new InstructionSync({
         opCode: OpCode.ADD,
@@ -766,10 +773,11 @@ export const InstructionList: Array<Instruction> = [
         execute: opInvalid,
         useGas: useGasInvalid
     }),
-    new InstructionSync({
+    new InstructionAsync({
         opCode: OpCode.CALL,
-        execute: opInvalid,
-        useGas: useGasInvalid
+        execute: opCall,
+        useGas: useGasCall,
+        useMemory: useMemoryCall
     }),
     new InstructionSync({
         opCode: OpCode.CALLCODE,
@@ -779,7 +787,8 @@ export const InstructionList: Array<Instruction> = [
     new InstructionSync({
         opCode: OpCode.RETURN,
         execute: opReturn,
-        useGas: useGasReturn
+        useGas: useGasReturn,
+        halts: true
     }),
     new InstructionSync({
         opCode: OpCode.DELEGATECALL,
@@ -803,8 +812,9 @@ export const InstructionList: Array<Instruction> = [
     }),
     new InstructionSync({
         opCode: OpCode.SUICIDE,
-        execute: opInvalid,
-        useGas: useGasInvalid
+        execute: opSuicide,
+        useGas: useGasSuicide,
+        halts: true
     })
 ];
 
@@ -812,3 +822,11 @@ export const Instructions = InstructionList.reduce((instructions, item) => {
     instructions[item.opCode] = item;
     return instructions;
 }, {});
+
+export const getInstruction = (opCode: OpCode): Instruction => {
+    const instruction = Instructions[opCode] as Instruction;
+    if (instruction === undefined) {
+        throw new VmError(ERROR.INVALID_OPCODE(opCode));
+    }
+    return instruction;
+};
