@@ -1,6 +1,6 @@
 import { IStorage } from 'src/IStorage';
 import { hexToBuffer } from 'test/helpers';
-import { AccountJSON } from 'test/vm/VmJSON';
+import { AccountJSON } from 'test/GeneralStateTests/TestsJSON';
 import { MerklePatriciaTree } from 'test/vm/MerklePatriciaTree';
 import * as rlp from 'rlp';
 import { keccak256 } from 'src/interpreter/hash';
@@ -48,6 +48,36 @@ export class TestStorage implements IStorage {
     private getAccount(address: Buffer): Account {
         const key = address.toString('hex');
         return this.data.get(key);
+    }
+
+        
+    revertToSnapshot(value: any) {
+
+    }
+
+    createAccount(address: Buffer) {
+        this.putAccount(address.toString('hex'), {
+            code: '',
+            balance: '',
+            nonce: '',
+            storage: {}
+        });
+    }
+
+    setCode(address: Buffer, code: Buffer) {
+        throw new Error('Method not implemented.');
+    }
+    snapshot() {        
+    }
+
+    exist(address: Buffer): boolean {
+        const key = address.toString('hex');
+        return this.data.has(key);
+    }
+
+    suicide(address: Buffer) {
+        const key = address.toString('hex');
+        this.data.delete(key);
     }
 
     private getOrNewAccount(address: Buffer): Account {
@@ -166,5 +196,8 @@ export class TestStorage implements IStorage {
 
     toString(): string {
         return '';
+    }
+
+    addLog(log: any) {
     }
 }
