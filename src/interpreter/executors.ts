@@ -427,8 +427,7 @@ export const opLog = (state: State) => {
     state.vm.storage.addLog({
         address: state.contract.address,
         topics: topicsBuf,
-        data: mem,
-        blockNumber: Number(state.vm.context.blockNumber)
+        data: mem
     });
 };
 
@@ -436,7 +435,7 @@ export const opSuicide = (state: State) => {
     const address = state.stack.pop();
     const balance = state.vm.storage.getBalance(state.contract.address);
     state.vm.storage.addBalance(addressToBuffer(address), balance);
-    
+
     state.vm.storage.suicide(state.contract.address);
 };
 
@@ -466,11 +465,12 @@ export const opCall = async (state: State) => {
         ? Buffer.alloc(0)
         : state.memory.get(Number(inOffset), Number(inLength));
 
-    // TODO    
     if (value !== 0n) {
+        state.contract.useGas(PARAMS.CallStipend);
         gas += PARAMS.CallStipend;
     }
 
+    // console.log(state.contract.gas, toAddressBuf.toString('hex'), data, gas, value);
     const result = await state.vm.call(state.contract, toAddressBuf, data, gas, value);
 
     state.stack.push(0n);

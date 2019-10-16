@@ -4,7 +4,7 @@ import { State } from 'src/interpreter/State';
 
 export class InstructionsIterable {
 
-    private state: State;
+    private readonly state: State;
 
     private readonly length: number;
 

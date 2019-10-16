@@ -31,6 +31,7 @@ export type TestJSON = {
     exec: ExecJSON;
     out: string;
     gas: string;
+    logs: string;
     post: {
         [address: string]: AccountJSON;
     };

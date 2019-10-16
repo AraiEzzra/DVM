@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { hexToBuffer, loadTestCases, hexToBigInt } from 'test/helpers';
+import { hexToBuffer, loadTestCases, hexToBigInt, logsToHash } from 'test/helpers';
 import { TestsJSON, TestJSON } from 'test/VMTests/TestsJSON';
 import { VmError } from 'src/interpreter/exceptions';
 import { VM, VMResult } from 'src/VM';
@@ -7,16 +7,16 @@ import { TestContext } from 'test/VMTests/TestContext';
 import { TestStorage } from 'test/vm/TestStorage';
 
 const TEST_CASES = [
-    // 'VMTests/vmArithmeticTest',
-    // 'VMTests/vmBitwiseLogicOperation',
-    // 'VMTests/vmBlockInfoTest',
-    // 'VMTests/vmEnvironmentalInfo',
-    // 'VMTests/vmIOandFlowOperations',
+    'VMTests/vmArithmeticTest',
+    'VMTests/vmBitwiseLogicOperation',
+    'VMTests/vmBlockInfoTest',
+    'VMTests/vmEnvironmentalInfo',
+    'VMTests/vmIOandFlowOperations',
     'VMTests/vmLogTest',
     // 'VMTests/vmPerformance',
-    // 'VMTests/vmPushDupSwapTest',
-    // 'VMTests/vmSha3Test',
-    // 'VMTests/vmSystemOperations',
+    'VMTests/vmPushDupSwapTest',
+    'VMTests/vmSha3Test',
+    'VMTests/vmSystemOperations',
 ];
 
 TEST_CASES.forEach(testCasesName => {
@@ -26,10 +26,6 @@ TEST_CASES.forEach(testCasesName => {
         cases.forEach(item => {
             for (let [testName, testJSON] of Object.entries(item)) {
 
-                if (testName !== 'log0_emptyMem') {
-                    continue;
-                }
-
                 it(testName, async () => {
                     const context = new TestContext(testJSON);
                     const storage = new TestStorage(testJSON.pre);
@@ -37,6 +33,7 @@ TEST_CASES.forEach(testCasesName => {
 
                     try {
                         const { returnData, leftOverGas } = await execute(vm, testJSON);
+                        const logs = logsToHash(storage.logs());
 
                         if (testJSON.gas === undefined) {
                             throw new Error('gas unspecified (indicating an error), but VM returned no error');
@@ -44,6 +41,7 @@ TEST_CASES.forEach(testCasesName => {
 
                         const expectReturnData = hexToBuffer(testJSON.out);
                         const expectGas = hexToBigInt(testJSON.gas);
+                        const expectLogs = hexToBuffer(testJSON.logs);
     
                         expect(expectReturnData, `return data mismatch: got ${returnData}, want ${expectReturnData}`)
                             .to.deep.equal(returnData);
@@ -51,6 +49,9 @@ TEST_CASES.forEach(testCasesName => {
                         expect(expectGas === leftOverGas, `remaining gas ${leftOverGas}, want ${expectGas}`).to.true;
     
                         expect(storage.data, 'wrong storage value').to.deep.equal(new TestStorage(testJSON.post).data);
+
+                        expect(expectLogs, `post state logs hash mismatch: got ${logs}, want ${expectLogs}`)
+                            .to.deep.equal(logs);
 
                     } catch (error) {
                         if (!(error instanceof VmError)) {

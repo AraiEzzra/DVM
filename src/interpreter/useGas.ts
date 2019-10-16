@@ -105,30 +105,32 @@ export const useGasLog = (state: State) => {
 };
 
 export const useGasCall = (state: State) => {
-    // const [
-    //     gasLimit,
-    //     toAddress,
-    //     value,
-    //     inOffset,
-    //     inLength,
-    //     outOffset,
-    //     outLength,
-    // ] = state.stack.peekN(7);
+    const [
+        gasLimit,
+        toAddress,
+        value,
+        inOffset,
+        inLength,
+        outOffset,
+        outLength,
+    ] = state.stack.peekN(7);
 
-    // const toAddressBuf = addressToBuffer(toAddress);
+    const toAddressBuf = addressToBuffer(toAddress);
 
-    // subMemUsage(state, inOffset, inLength);
-    // subMemUsage(state, outOffset, outLength);
+    state.contract.useGas(PARAMS.CallGasFrontier);
 
-    // if (value !== 0n) {
-    //     state.contract.useGas(PARAMS.CallValueTransferGas);
-    // }
+    subMemUsage(state, inOffset, inLength);
+    subMemUsage(state, outOffset, outLength);
 
-    // if (!state.vm.storage.exist(toAddressBuf)) {
-    //     if (value !== 0n) {
-    //         state.contract.useGas(PARAMS.CallNewAccountGas);
-    //     }
-    // }
+    if (value !== 0n) {
+        state.contract.useGas(PARAMS.CallValueTransferGas);
+    }
+
+    if (!state.vm.storage.exist(toAddressBuf)) {
+        if (value !== 0n) {
+            state.contract.useGas(PARAMS.CallNewAccountGas);
+        }
+    }
 };
 
 export const useGasSuicide = (state: State) => {

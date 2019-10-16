@@ -2,6 +2,9 @@ import fs from 'fs';
 import chai from 'chai';
 import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
+import * as rlp from 'rlp';
+import { keccak256 } from 'src/interpreter/hash';
+import { Log } from 'src/Log';
 
 chai.use(chaiAsPromised);
 
@@ -46,4 +49,9 @@ export const loadTestCases = <T>(name: string): Array<T> => {
         const txt = fs.readFileSync(`${path}/${file}`, 'utf8');
         return JSON.parse(txt);
     });
+};
+
+export const logsToHash = (logs: Array<Log>): Buffer => {
+    const value = logs.map(item => Object.values(item));
+    return keccak256(rlp.encode(value));
 };

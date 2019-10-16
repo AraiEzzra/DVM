@@ -2,6 +2,7 @@ import { State } from 'src/interpreter/State';
 import { VM } from 'src/VM';
 import { Contract } from 'src/Contract';
 import { InstructionsIterable } from 'src/interpreter/InstructionsIterable';
+import { opCodeToString } from 'src/interpreter/OpCode';
 
 export class Interpreter {
 
@@ -21,6 +22,8 @@ export class Interpreter {
         this.contract.input = input;
 
         for (const instruction of instructions) {
+
+            //console.log(opCodeToString(instruction.opCode))
 
             instruction.useGas(state);
 

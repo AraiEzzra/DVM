@@ -19,11 +19,11 @@ export class TestStorage implements IStorage {
 
     readonly data: Map<string, Account>;
 
-    // TODO
-    log: Log;
+    private logList: Array<Log>;
 
     constructor(data: {[address: string]: AccountJSON} = {}) {
         this.data = new Map();
+        this.logList = [];
 
         Object.entries(data).forEach(([key, value]) => this.putAccount(key, value));
     }
@@ -202,18 +202,10 @@ export class TestStorage implements IStorage {
     }
 
     addLog(log: Log) {
-        log.txHash = Buffer.alloc(0);
-        log.blockHash = Buffer.alloc(0);
-        log.txIndex = 0;
-        log.index = 0;
+        this.logList.push(log);
+    }
 
-        this.log = log;
-
-        const k = rlp.encode(Object.keys(log));
-
-        console.log(log)
-        console.log(k.toString('hex'));
-
-
+    logs(): Array<Log> {
+        return this.logList;
     }
 }

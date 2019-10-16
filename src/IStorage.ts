@@ -24,4 +24,6 @@ export interface IStorage {
     suicide(address: Buffer): void;
 
     addLog(log: Log): void;
+
+    logs(): Array<Log>;
 }

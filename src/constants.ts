@@ -39,7 +39,7 @@ export class PARAMS {
     static TxDataNonZeroGasFrontier = 68n; // Per byte of data attached to a transaction that is not equal to zero.
                                            // NOTE: Not payable on data of calls between transactions.
 
-    static CallGasFrontier = 40n;  // Once per CALL operation & message call transaction.
+    static CallGasFrontier = 700n;  // Once per CALL operation & message call transaction.
     static CallValueTransferGas = 9000n; // Paid for CALL when the value transfer is non-zero.
     static CallNewAccountGas = 25000n; // Paid for CALL when the destination address didn't exist prior.
     static CallStipend = 2300n; // Free gas given at beginning of call.
