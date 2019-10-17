@@ -43,15 +43,25 @@ TEST_CASES.forEach(testCasesName => {
                         const expectGas = hexToBigInt(testJSON.gas);
                         const expectLogs = hexToBuffer(testJSON.logs);
     
-                        expect(expectReturnData, `return data mismatch: got ${returnData}, want ${expectReturnData}`)
-                            .to.deep.equal(returnData);
+                        expect(
+                            expectReturnData.equals(returnData),
+                            `return data mismatch: got ${returnData}, want ${expectReturnData}`
+                        ).to.equal(true);
     
-                        expect(expectGas === leftOverGas, `remaining gas ${leftOverGas}, want ${expectGas}`).to.true;
-    
-                        expect(storage.data, 'wrong storage value').to.deep.equal(new TestStorage(testJSON.post).data);
+                        expect(
+                            expectGas === leftOverGas,
+                            `remaining gas ${leftOverGas}, want ${expectGas}`
+                        ).to.equal(true);
 
-                        expect(expectLogs, `post state logs hash mismatch: got ${logs}, want ${expectLogs}`)
-                            .to.deep.equal(logs);
+                        expect(
+                            storage.data,
+                            `wrong storage value`
+                        ).to.deep.equal(new TestStorage(testJSON.post).data);
+
+                        expect(
+                            expectLogs.equals(logs),
+                            `post state logs hash mismatch: got ${logs}, want ${expectLogs}`
+                        ).to.equal(true);
 
                     } catch (error) {
                         if (!(error instanceof VmError)) {
@@ -64,7 +74,6 @@ TEST_CASES.forEach(testCasesName => {
     });
 });
 
-
 const execute = async (vm: VM, testJSON: TestJSON): Promise<VMResult> => {
     const caller = vm.accountRef(hexToBuffer(testJSON.exec.caller));
     const address = hexToBuffer(testJSON.exec.address);
@@ -73,4 +82,4 @@ const execute = async (vm: VM, testJSON: TestJSON): Promise<VMResult> => {
     const value = hexToBigInt(testJSON.exec.value);
 
     return await vm.call(caller, address, data, gasLimit, value);
-}
+};

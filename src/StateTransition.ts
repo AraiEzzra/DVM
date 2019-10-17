@@ -45,7 +45,7 @@ export class StateTransition {
         for (let i = 0; i < data.length; i++) {
             gas += data[i] === 0
                 ? PARAMS.TxDataZeroGas
-                : PARAMS.TxDataNonZeroGasFrontier;
+                : PARAMS.TxDataNonZeroGas;
         }
         return gas;
     }

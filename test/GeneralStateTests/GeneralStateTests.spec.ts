@@ -27,7 +27,7 @@ TEST_CASES.forEach(testCasesName => {
                     continue;
                 }
 
-                for (let post of test.post[FORC].slice(0, 1)) {
+                for (let post of test.post[FORC].slice(1, 2)) {
                     it(testName, async () => {
 
                         const storage = new TestStorage(test.pre);
@@ -36,17 +36,20 @@ TEST_CASES.forEach(testCasesName => {
                         const vm = new VM(context, storage);
                         const gasPool = new GasPool(context.gasLimit);
 
-                        await vm.applyMessage(message, gasPool);
+                        const result = await vm.applyMessage(message, gasPool);
 
+                        console.log(result)
                         console.log(storage.data)
 
                         const tree = await storage.toMerklePatriciaTree();
                         const hash = hexToBuffer(post.hash);
 
-                        expect(tree.root, `post state root mismatch: got ${tree.root.toString('hex')}, want ${hash.toString('hex')}`)
-                            .to.deep.equal(hash);
+                        expect(
+                            tree.root.equals(hash),
+                            `post state root mismatch: got ${tree.root.toString('hex')}, want ${hash.toString('hex')}`
+                        ).to.equal(true);
 
-                    })
+                    });
                 }
             }
         });
@@ -83,5 +86,5 @@ export const makeMessage = (txJSON: TransactionJSON, post: PostStateJSON): Messa
         value,
         nonce: hexToBigInt(txJSON.nonce),
         data
-    }            
-}
+    };
+};

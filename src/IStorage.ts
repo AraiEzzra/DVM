@@ -11,7 +11,7 @@ export interface IStorage {
     setNonce(address: Buffer, value: bigint): void;
 
     getCode(address: Buffer): Buffer;
-	setCode(address: Buffer, code: Buffer): void;
+    setCode(address: Buffer, code: Buffer): void;
 
     getValue(address: Buffer, key: Buffer): Buffer;
     setValue(address: Buffer, key: Buffer, value: Buffer): void;

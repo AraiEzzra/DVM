@@ -59,7 +59,8 @@ export class TestStorage implements IStorage {
     }
 
     createAccount(address: Buffer) {
-        this.putAccount(address.toString('hex'), {
+        const key = address.toString('hex');
+        this.putAccount(key, {
             code: '',
             balance: '',
             nonce: '',
@@ -87,13 +88,7 @@ export class TestStorage implements IStorage {
         const key = address.toString('hex');
 
         if (!this.data.has(key)) {
-            this.data.set(key, {
-                address,
-                code: Buffer.alloc(0),
-                nonce: 0n,
-                balance: 0n,
-                storage: new Map()
-            });
+            this.createAccount(address);
         }
 
         return this.data.get(key);

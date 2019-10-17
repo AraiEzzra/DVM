@@ -459,23 +459,24 @@ export const opCall = async (state: State) => {
 
     const toAddressBuf = addressToBuffer(toAddress);
 
-    let gas = maxCallGas(gasLimit, state.contract.gas);
+    let gas = state.callGasTemp;
 
     const data = inLength === 0n
         ? Buffer.alloc(0)
         : state.memory.get(Number(inOffset), Number(inLength));
 
     if (value !== 0n) {
-        state.contract.useGas(PARAMS.CallStipend);
         gas += PARAMS.CallStipend;
     }
 
-    // console.log(state.contract.gas, toAddressBuf.toString('hex'), data, gas, value);
-    const result = await state.vm.call(state.contract, toAddressBuf, data, gas, value);
+    const { returnData, leftOverGas, error } = await state.vm.call(state.contract, toAddressBuf, data, gas, value);
 
-    state.stack.push(0n);
+    state.stack.push(error ? 0n : 1n);
 
-    state.contract.gas += result.leftOverGas;
+    if (!error) {
+        state.memory.set(Number(outOffset), Number(outLength), returnData);
+    }
 
-    state.memory.set(Number(outOffset), Number(outLength), result.returnData);
+    state.returnData = returnData;
+    state.contract.gas += leftOverGas;
 };

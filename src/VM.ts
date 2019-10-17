@@ -11,6 +11,7 @@ import { VmError, ERROR } from 'src/interpreter/exceptions';
 export type VMResult = {
     returnData: Buffer;
     leftOverGas: bigint;
+    error?: Error;
 };
 
 export class VM {
@@ -41,20 +42,22 @@ export class VM {
         return interpreter.run(input);
     } 
 
+    // TODO
     async call(caller: ContractRef, address: Buffer, input: Buffer, gas: bigint, value: bigint): Promise<VMResult> {
         if (this.depth > PARAMS.CallCreateDepth) {
-            throw new VmError(ERROR.DEPTH);
+            return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
         }
 
         if (!this.context.canTransfer(this.storage, caller.address, value)) {
-            throw new VmError(ERROR.INSUFFICIENT_BALANCE);
+            return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.INSUFFICIENT_BALANCE) };
         }
 
         const to = this.accountRef(address);
         const snapshot = this.storage.snapshot();
 
         if (!this.storage.exist(address)) {
-            this.storage.createAccount(address);
+            return { returnData: Buffer.alloc(0), leftOverGas: gas };
+            //this.storage.createAccount(address);
         }
 
         this.context.transfer(this.storage, caller.address, to.address, value);
@@ -63,13 +66,21 @@ export class VM {
         contract.setCallCode(address, this.storage.getCode(address));
 
         try {
-            return {
-                returnData: await this.run(contract, input),
-                leftOverGas: contract.gas
-            };
+
+            const returnData = await this.run(contract, input);
+            return { returnData, leftOverGas: contract.gas };
+
         } catch (error) {
+
             this.storage.revertToSnapshot(snapshot);
-            throw error;
+
+            contract.useGas(contract.gas);
+
+            return {
+                returnData: Buffer.alloc(0),
+                leftOverGas: contract.gas,
+                error
+            };
         }
     }
 }

@@ -31,6 +31,5 @@ export const useMemoryCall = (state: State) => {
         outLength,
     ] = state.stack.peekN(7);
 
-    
-    
+    state.memory.resize(Number(outOffset + outLength));
 };

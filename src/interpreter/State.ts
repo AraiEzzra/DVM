@@ -19,6 +19,7 @@ export class State {
     highestMemCost: bigint;
     memoryWordCount: bigint;
     returnData: Buffer;
+    callGasTemp: bigint;
 
     constructor(interpreter: Interpreter) {
         this.interpreter = interpreter;
@@ -33,6 +34,7 @@ export class State {
         this.highestMemCost = 0n;
         this.memoryWordCount = 0n;
         this.returnData = Buffer.alloc(0);
+        this.callGasTemp = 0n;
     }
 
     private getValidJumpDests(codes: Buffer): Set<number> {
