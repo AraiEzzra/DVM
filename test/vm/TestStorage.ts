@@ -133,6 +133,14 @@ export class TestStorage implements IStorage {
         return Buffer.alloc(0);
     }
 
+    getCodeSize(address: Buffer): bigint {
+        const account = this.getAccount(address);
+        if (account) {
+            return BigInt(account.code.length);
+        }
+        return 0n;
+    }
+
     get size(): number {
         return 0;
     }

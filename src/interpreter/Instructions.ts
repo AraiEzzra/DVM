@@ -25,7 +25,9 @@ import {
     useGasLog,
     useGasBalance,
     useGasCall,
-    useGasSuicide
+    useGasCallCode,
+    useGasSuicide,
+    useGasExtCodeSize
  } from 'src/interpreter/useGas';
 
  import {
@@ -99,7 +101,9 @@ import {
     opLog,
     opBalance,
     opCall,
-    opSuicide
+    opCallCode,
+    opSuicide,
+    opExtCodeSize
 } from 'src/interpreter/executors';
 
 export const InstructionList: Array<Instruction> = [
@@ -298,8 +302,8 @@ export const InstructionList: Array<Instruction> = [
     }),
     new InstructionSync({
         opCode: OpCode.EXTCODESIZE,
-        execute: opInvalid,
-        useGas: useGasInvalid
+        execute: opExtCodeSize,
+        useGas: useGasExtCodeSize
     }),
     new InstructionSync({
         opCode: OpCode.EXTCODECOPY,
@@ -779,10 +783,11 @@ export const InstructionList: Array<Instruction> = [
         useGas: useGasCall,
         useMemory: useMemoryCall
     }),
-    new InstructionSync({
+    new InstructionAsync({
         opCode: OpCode.CALLCODE,
-        execute: opInvalid,
-        useGas: useGasInvalid
+        execute: opCallCode,
+        useGas: useGasCallCode,
+        useMemory: useMemoryCall
     }),
     new InstructionSync({
         opCode: OpCode.RETURN,

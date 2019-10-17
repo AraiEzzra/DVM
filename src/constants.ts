@@ -1,6 +1,6 @@
-export const STACK_MAX_SIZE = 1024;
-
 export class PARAMS {
+    static StackLimit = 1024;  // Maximum size of VM stack allowed.
+
     static ZeroGas = 0n;
     static BaseGas = 2n;
     static VeryLowGas = 3n;
@@ -43,4 +43,5 @@ export class PARAMS {
     static CallValueTransferGas = 9000n; // Paid for CALL when the value transfer is non-zero.
     static CallNewAccountGas = 25000n; // Paid for CALL when the destination address didn't exist prior.
     static CallStipend = 2300n; // Free gas given at beginning of call.
+    static ExtcodeSizeGas = 700n; // Cost of EXTCODESIZE
 }

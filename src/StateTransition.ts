@@ -84,16 +84,18 @@ export class StateTransition {
 
         vm.storage.setNonce(sender.address, vm.storage.getNonce(sender.address) + 1n);
 
-        const result = await this.vm.call(sender, message.to, message.data, this.gas, message.value);
-        this.gas = result.leftOverGas;
+        const { returnData, leftOverGas, error } = await this.vm.call(sender, message.to, message.data, this.gas, message.value);
+
+        this.gas = leftOverGas;
 
         this.refundGas();
 
         vm.storage.addBalance(vm.context.coinbase, this.gasUsed() * message.gasPrice);
 
         return {
-            returnData: result.returnData,
-            leftOverGas: this.gasUsed()
+            returnData: returnData,
+            leftOverGas: this.gasUsed(),
+            error
         };
     }
 }

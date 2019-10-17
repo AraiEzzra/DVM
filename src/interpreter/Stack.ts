@@ -1,4 +1,4 @@
-import { STACK_MAX_SIZE } from 'src/constants';
+import { PARAMS } from 'src/constants';
 import { U256 } from 'src/interpreter/U256';
 import { ERROR, VmError } from 'src/interpreter/exceptions';
 
@@ -18,7 +18,7 @@ export class Stack {
         if (value > U256.MAX_VALUE) {
             throw new VmError(ERROR.OUT_OF_RANGE);
         }
-        if (this.data.length === STACK_MAX_SIZE) {
+        if (this.data.length === PARAMS.StackLimit) {
             throw new VmError(ERROR.STACK_OVERFLOW);
         }
         this.data.push(value);

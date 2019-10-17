@@ -480,3 +480,44 @@ export const opCall = async (state: State) => {
     state.returnData = returnData;
     state.contract.gas += leftOverGas;
 };
+
+export const opCallCode = async (state: State) => {
+    const [
+        gasLimit,
+        toAddress,
+        value,
+        inOffset,
+        inLength,
+        outOffset,
+        outLength,
+    ] = state.stack.popN(7);
+
+    const toAddressBuf = addressToBuffer(toAddress);
+
+    let gas = state.callGasTemp;
+
+    const data = inLength === 0n
+        ? Buffer.alloc(0)
+        : state.memory.get(Number(inOffset), Number(inLength));
+
+    if (value !== 0n) {
+        gas += PARAMS.CallStipend;
+    }
+
+    const { returnData, leftOverGas, error } = await state.vm.callCode(state.contract, toAddressBuf, data, gas, value);
+
+    state.stack.push(error ? 0n : 1n);
+
+    if (!error) {
+        state.memory.set(Number(outOffset), Number(outLength), returnData);
+    }
+
+    state.returnData = returnData;
+    state.contract.gas += leftOverGas;
+};
+
+export const opExtCodeSize = async (state: State) => {
+    const address = state.stack.pop();
+    const result = state.vm.storage.getCodeSize(addressToBuffer(address));
+    state.stack.push(result);
+};

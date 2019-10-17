@@ -37,6 +37,8 @@ export const useGasJumpdest = (state: State) => state.contract.useGas(PARAMS.Jum
 
 export const useGasBalance = (state: State) => state.contract.useGas(PARAMS.BalanceGas);
 
+export const useGasExtCodeSize = (state: State) => state.contract.useGas(PARAMS.ExtcodeSizeGas);
+
 export const useGasSstore = (state: State) => {
     let [keyBE, valueBE] = state.stack.peekN(2);
     const key = toBufferBE(keyBE, 32);
@@ -127,6 +129,31 @@ export const useGasCall = (state: State) => {
         if (!state.vm.storage.exist(toAddressBuf)) {
             state.contract.useGas(PARAMS.CallNewAccountGas);
         }
+    }
+
+    state.callGasTemp = maxCallGas(gasLimit, state.contract.gas);
+
+    state.contract.useGas(state.callGasTemp);
+};
+
+export const useGasCallCode = (state: State) => {
+    const [
+        gasLimit,
+        toAddress,
+        value,
+        inOffset,
+        inLength,
+        outOffset,
+        outLength,
+    ] = state.stack.peekN(7);
+
+    state.contract.useGas(PARAMS.CallGas);
+
+    subMemUsage(state, inOffset, inLength);
+    subMemUsage(state, outOffset, outLength);
+
+    if (value !== 0n) {
+        state.contract.useGas(PARAMS.CallValueTransferGas);
     }
 
     state.callGasTemp = maxCallGas(gasLimit, state.contract.gas);

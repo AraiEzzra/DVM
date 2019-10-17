@@ -27,7 +27,6 @@ export class Contract {
     }
 
     useGas(amount: bigint) {
-        console.log(amount)
         if (amount > this.gas) {
             throw new VmError(ERROR.OUT_OF_GAS);
         }        

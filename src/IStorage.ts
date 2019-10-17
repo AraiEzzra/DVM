@@ -12,6 +12,7 @@ export interface IStorage {
 
     getCode(address: Buffer): Buffer;
     setCode(address: Buffer, code: Buffer): void;
+    getCodeSize(address: Buffer): bigint;
 
     getValue(address: Buffer, key: Buffer): Buffer;
     setValue(address: Buffer, key: Buffer, value: Buffer): void;

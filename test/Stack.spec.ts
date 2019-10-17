@@ -1,5 +1,5 @@
 import { Stack } from 'src/interpreter/Stack';
-import { STACK_MAX_SIZE } from 'src/constants';
+import { PARAMS } from 'src/constants';
 import { U256 } from 'src/interpreter/U256';
 import { expect } from 'chai';
 
@@ -59,7 +59,7 @@ describe('Stack', () => {
 
     it('should throw on overflow', () => {
         const stack = new Stack();
-        for (let i = 0; i < STACK_MAX_SIZE; i++) {
+        for (let i = 0; i < PARAMS.StackLimit; i++) {
             stack.push(BigInt(1));
         }
 

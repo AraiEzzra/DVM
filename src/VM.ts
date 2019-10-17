@@ -83,4 +83,41 @@ export class VM {
             };
         }
     }
+
+    // TODO
+    async callCode(caller: ContractRef, address: Buffer, input: Buffer, gas: bigint, value: bigint): Promise<VMResult> {
+        if (this.depth > PARAMS.CallCreateDepth) {
+            return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
+        }
+
+        if (!this.context.canTransfer(this.storage, caller.address, value)) {
+            return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.INSUFFICIENT_BALANCE) };
+        }
+
+        const to = this.accountRef(address);
+        const snapshot = this.storage.snapshot();
+
+        const contract = new Contract(caller, to, value, gas);
+        contract.setCallCode(address, this.storage.getCode(address));
+
+        try {
+
+            const returnData = await this.run(contract, input);
+            return { returnData, leftOverGas: contract.gas };
+
+        } catch (error) {
+
+            this.storage.revertToSnapshot(snapshot);
+
+            contract.useGas(contract.gas);
+
+            return {
+                returnData: Buffer.alloc(0),
+                leftOverGas: contract.gas,
+                error
+            };
+        }
+    }
+    
+    
 }

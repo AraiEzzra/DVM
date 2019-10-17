@@ -23,11 +23,11 @@ TEST_CASES.forEach(testCasesName => {
         cases.forEach(item => {
             for (let [testName, test] of Object.entries(item)) {
 
-                if (testName !== 'callNonConst') {
-                    continue;
+                if (testName !== 'callcodeNonConst') {
+                    //continue;
                 }
 
-                for (let post of test.post[FORC].slice(1, 2)) {
+                for (let post of test.post[FORC].slice(0, 1)) {
                     it(testName, async () => {
 
                         const storage = new TestStorage(test.pre);
@@ -38,8 +38,13 @@ TEST_CASES.forEach(testCasesName => {
 
                         const result = await vm.applyMessage(message, gasPool);
 
-                        console.log(result)
-                        console.log(storage.data)
+                        // console.log(result)
+                        // console.log(storage.data)
+
+                        if (result.error) {
+                            console.log(result.error)
+                        }
+                        
 
                         const tree = await storage.toMerklePatriciaTree();
                         const hash = hexToBuffer(post.hash);
