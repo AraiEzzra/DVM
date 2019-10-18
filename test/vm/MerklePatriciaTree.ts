@@ -7,15 +7,6 @@ export class MerklePatriciaTree {
 
     constructor() {
         this.trie = new SecureTrie();
-
-        // TODO add event
-        // const put = this.trie.put.bind(this.trie);
-        // this.trie.put = (key, value, cb) => {
-        //   put(key, value, (...args) => {
-        //     console.log('put', this.trie.root.toString('hex'), key.toString('hex'), value.toString('hex'))
-        //     cb(...args);
-        //   })
-        // }
     }
 
     get root(): Buffer {

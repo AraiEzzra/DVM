@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { isBufferEqual, hexToBigInt } from 'test/helpers';
+import { isBufferEqual, hexToBigInt, logsToHash } from 'test/helpers';
 import { hexToBuffer, loadTestCases } from 'test/helpers';
 import { toBigIntBE } from 'bigint-buffer';
 import { TestsJSON, TransactionJSON, PostStateJSON } from 'test/GeneralStateTests/TestsJSON';
@@ -11,7 +11,11 @@ import { Message } from 'src/Message';
 import { GasPool } from 'src/GasPool';
 
 const TEST_CASES = [
-    'GeneralStateTests/stArgsZeroOneBalance',
+    // 'GeneralStateTests/stArgsZeroOneBalance',
+    // 'GeneralStateTests/stAttackTest',
+    // 'GeneralStateTests/stBadOpcode',    
+    // 'GeneralStateTests/stCallCodes',
+    'GeneralStateTests/stReturnDataTest',
 ];
 
 const FORC = 'ConstantinopleFix';
@@ -23,11 +27,15 @@ TEST_CASES.forEach(testCasesName => {
         cases.forEach(item => {
             for (let [testName, test] of Object.entries(item)) {
 
-                if (testName !== 'callcodeNonConst') {
-                    //continue;
+                // if (testName !== 'call_ecrec_success_empty_then_returndatasize') {
+                //     continue;
+                // }
+
+                if (!testName.endsWith('returndatasize')) {
+                    continue;
                 }
 
-                for (let post of test.post[FORC].slice(0, 1)) {
+                for (let post of test.post[FORC]) {
                     it(testName, async () => {
 
                         const storage = new TestStorage(test.pre);
@@ -38,22 +46,29 @@ TEST_CASES.forEach(testCasesName => {
 
                         const result = await vm.applyMessage(message, gasPool);
 
-                        // console.log(result)
-                        // console.log(storage.data)
+                        // console.log(result);
+                        // console.log(storage.data);
 
                         if (result.error) {
-                            console.log(result.error)
+                            console.log(result.error);
                         }
                         
-
                         const tree = await storage.toMerklePatriciaTree();
-                        const hash = hexToBuffer(post.hash);
+                        const logs = logsToHash(storage.logs());
+
+                        const expectHash = hexToBuffer(post.hash);
+                        const expectLogs = hexToBuffer(post.logs);
 
                         expect(
-                            tree.root.equals(hash),
-                            `post state root mismatch: got ${tree.root.toString('hex')}, want ${hash.toString('hex')}`
+                            expectHash.equals(tree.root),
+                            `post state root mismatch: got ${tree.root.toString('hex')}, want ${expectHash.toString('hex')}`
                         ).to.equal(true);
 
+                        expect(
+                            expectLogs.equals(logs),
+                            `post state logs hash mismatch: got ${logs}, want ${expectLogs}`
+                        ).to.equal(true);
+                        
                     });
                 }
             }

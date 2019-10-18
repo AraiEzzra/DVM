@@ -44,4 +44,7 @@ export class PARAMS {
     static CallNewAccountGas = 25000n; // Paid for CALL when the destination address didn't exist prior.
     static CallStipend = 2300n; // Free gas given at beginning of call.
     static ExtcodeSizeGas = 700n; // Cost of EXTCODESIZE
+    static ExtcodeCopyBase = 700n;
+
+    static EcrecoverGas = 3000n; // Elliptic curve sender recovery gas price
 }

@@ -31,5 +31,17 @@ export const useMemoryCall = (state: State) => {
         outLength,
     ] = state.stack.peekN(7);
 
+    // TODO
+    state.memory.resize(Number(outOffset + outLength));
+};
+
+export const useMemoryExtCodeCopy = (state: State) => {
+    let [address, memOffset, codeOffset, length] = state.stack.peekN(4);
+    state.memory.resize(Number(memOffset + length));
+};
+
+export const useMemoryDelegateCall = (state: State) => {
+    let [gasLimit, toAddress, inOffset, inLength, outOffset, outLength] = state.stack.peekN(6);
+    // TODO
     state.memory.resize(Number(outOffset + outLength));
 };

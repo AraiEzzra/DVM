@@ -106,6 +106,16 @@ export const useGasLog = (state: State) => {
     state.contract.useGas(PARAMS.LogGas + PARAMS.LogTopicGas * BigInt(topicsCount) + memLength * PARAMS.LogDataGas);
 };
 
+export const useGasExtCodeCopy = (state: State) => {
+    let [address, memOffset, codeOffset, length] = state.stack.peekN(4);
+
+    state.contract.useGas(PARAMS.ExtcodeCopyBase);
+
+    subMemUsage(state, memOffset, length);
+
+    state.contract.useGas(PARAMS.CopyGas * U256.divCeil(length));
+};
+
 export const useGasCall = (state: State) => {
     const [
         gasLimit,
@@ -155,6 +165,19 @@ export const useGasCallCode = (state: State) => {
     if (value !== 0n) {
         state.contract.useGas(PARAMS.CallValueTransferGas);
     }
+
+    state.callGasTemp = maxCallGas(gasLimit, state.contract.gas);
+
+    state.contract.useGas(state.callGasTemp);
+};
+
+export const useGasDelegateCall = (state: State) => {
+    let [gasLimit, toAddress, inOffset, inLength, outOffset, outLength] = state.stack.peekN(6);
+
+    state.contract.useGas(PARAMS.CallGas);
+
+    subMemUsage(state, inOffset, inLength);
+    subMemUsage(state, outOffset, outLength);
 
     state.callGasTemp = maxCallGas(gasLimit, state.contract.gas);
 

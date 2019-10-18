@@ -6,6 +6,7 @@ import * as rlp from 'rlp';
 import { keccak256 } from 'src/interpreter/hash';
 import { bigIntToBuffer } from 'src/interpreter/utils';
 import { Log } from 'src/Log';
+import json5 = require('json5');
 
 export type Account = {
     address: Buffer;
@@ -17,7 +18,7 @@ export type Account = {
 
 export class TestStorage implements IStorage {
 
-    readonly data: Map<string, Account>;
+    data: Map<string, Account>;
 
     private logList: Array<Log>;
 
@@ -53,9 +54,16 @@ export class TestStorage implements IStorage {
         const key = address.toString('hex');
         return this.data.get(key);
     }
+
+    snapshot() {
+        return new Map([...this.data.entries()].map(([key, item]) => {
+            const cloneItem = { ...item, storage: new Map(item.storage) };
+            return [key, cloneItem];
+        }));
+    }
         
     revertToSnapshot(value: any) {
-
+        this.data = value;
     }
 
     createAccount(address: Buffer) {
@@ -70,8 +78,6 @@ export class TestStorage implements IStorage {
 
     setCode(address: Buffer, code: Buffer) {
         throw new Error('Method not implemented.');
-    }
-    snapshot() {        
     }
 
     exist(address: Buffer): boolean {

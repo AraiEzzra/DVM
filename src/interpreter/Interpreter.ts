@@ -21,6 +21,8 @@ export class Interpreter {
 
         this.contract.input = input;
 
+        this.vm.addDepth();
+
         for (const instruction of instructions) {
 
             //console.log(opCodeToString(instruction.opCode))

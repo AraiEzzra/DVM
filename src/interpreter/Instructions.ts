@@ -27,7 +27,9 @@ import {
     useGasCall,
     useGasCallCode,
     useGasSuicide,
-    useGasExtCodeSize
+    useGasExtCodeSize,
+    useGasExtCodeCopy,
+    useGasDelegateCall,
  } from 'src/interpreter/useGas';
 
  import {
@@ -35,7 +37,9 @@ import {
      useMemoryMstore8,
      useMemoryCodeCopy,
      useMemoryCallDataCopy,
-     useMemoryCall
+     useMemoryCall,
+     useMemoryExtCodeCopy,
+     useMemoryDelegateCall
  } from 'src/interpreter/useMemory';
 
 import {
@@ -103,7 +107,10 @@ import {
     opCall,
     opCallCode,
     opSuicide,
-    opExtCodeSize
+    opExtCodeSize,
+    opExtCodeCopy,
+    opDelegateCall,
+    opReturnDataSize
 } from 'src/interpreter/executors';
 
 export const InstructionList: Array<Instruction> = [
@@ -307,12 +314,13 @@ export const InstructionList: Array<Instruction> = [
     }),
     new InstructionSync({
         opCode: OpCode.EXTCODECOPY,
-        execute: opInvalid,
-        useGas: useGasInvalid
+        execute: opExtCodeCopy,
+        useGas: useGasExtCodeCopy,
+        useMemory: useMemoryExtCodeCopy
     }),
     new InstructionSync({
         opCode: OpCode.RETURNDATASIZE,
-        execute: opInvalid,
+        execute: opReturnDataSize,
         useGas: useGasBase
     }),
     new InstructionSync({
@@ -795,10 +803,11 @@ export const InstructionList: Array<Instruction> = [
         useGas: useGasReturn,
         halts: true
     }),
-    new InstructionSync({
+    new InstructionAsync({
         opCode: OpCode.DELEGATECALL,
-        execute: opInvalid,
-        useGas: useGasInvalid
+        execute: opDelegateCall,
+        useGas: useGasDelegateCall,
+        useMemory: useMemoryDelegateCall
     }),
     new InstructionSync({
         opCode: OpCode.CREATE2,

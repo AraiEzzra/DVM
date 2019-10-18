@@ -1,8 +1,13 @@
 import { VmError, ERROR } from 'src/interpreter/exceptions';
 
+export interface IPrecompiledContract {
+    requiredGas(input: Buffer): bigint;
+    run(input: Buffer): Buffer;
+}
+
 export type ContractRef = {
     address: Buffer;
-}
+};
 
 export class Contract {
 
@@ -40,5 +45,14 @@ export class Contract {
 
     get address(): Buffer {
         return this.self.address;
+    }
+
+    asDelegate(): Contract {
+        const parent = this.caller as Contract;
+
+        this.callerAddress = parent.callerAddress;
+        this.value = parent.value;
+
+        return this;
     }
 }

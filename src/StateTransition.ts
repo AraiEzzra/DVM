@@ -1,4 +1,4 @@
-import { VM, VMResult } from 'src/VM';
+import { VM, VMCallResult } from 'src/VM';
 import { Message } from 'src/Message';
 import { GasPool } from 'src/GasPool';
 import { VmError, ERROR } from 'src/interpreter/exceptions';
@@ -72,7 +72,7 @@ export class StateTransition {
         return this.initialGas - this.gas;
     }
 
-    async run(): Promise<VMResult> {
+    async run(): Promise<VMCallResult> {
         const { vm, message } = this;
 
         this.buyGas();
@@ -84,18 +84,18 @@ export class StateTransition {
 
         vm.storage.setNonce(sender.address, vm.storage.getNonce(sender.address) + 1n);
 
-        const { returnData, leftOverGas, error } = await this.vm.call(sender, message.to, message.data, this.gas, message.value);
+        const result = await this.vm.call(sender, message.to, message.data, this.gas, message.value);
 
-        this.gas = leftOverGas;
+        this.gas = result.leftOverGas;
 
         this.refundGas();
 
         vm.storage.addBalance(vm.context.coinbase, this.gasUsed() * message.gasPrice);
 
         return {
-            returnData: returnData,
+            returnData: result.returnData,
             leftOverGas: this.gasUsed(),
-            error
+            error: result.error
         };
     }
 }

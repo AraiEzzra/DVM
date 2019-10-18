@@ -5,7 +5,6 @@ import { VmError, ERROR } from 'src/interpreter/exceptions';
 import { U256 } from 'src/interpreter/U256';
 import { keccak256 } from 'src/interpreter/hash';
 import { getDataSlice, bigIntToBuffer, addressToBuffer } from 'src/interpreter/utils';
-import { maxCallGas } from 'src/interpreter/useGas';
 import { PARAMS } from 'src/constants';
 
 export const opInvalid = (state: State) => {
@@ -516,8 +515,45 @@ export const opCallCode = async (state: State) => {
     state.contract.gas += leftOverGas;
 };
 
+export const opDelegateCall = async (state: State) => {
+    let [gasLimit, toAddress, inOffset, inLength, outOffset, outLength] = state.stack.popN(6);
+
+    const toAddressBuf = addressToBuffer(toAddress);
+
+    let gas = state.callGasTemp;
+
+    const data = inLength === 0n
+        ? Buffer.alloc(0)
+        : state.memory.get(Number(inOffset), Number(inLength));
+
+    const { returnData, leftOverGas, error } = await state.vm.delegateCall(state.contract, toAddressBuf, data, gas);
+
+    state.stack.push(error ? 0n : 1n);
+
+    if (!error) {
+        state.memory.set(Number(outOffset), Number(outLength), returnData);
+    }
+
+    state.returnData = returnData;
+    state.contract.gas += leftOverGas;
+};
+
 export const opExtCodeSize = async (state: State) => {
     const address = state.stack.pop();
     const result = state.vm.storage.getCodeSize(addressToBuffer(address));
+    state.stack.push(result);
+};
+
+
+export const opExtCodeCopy = async (state: State) => {
+    let [address, memOffset, codeOffset, length] = state.stack.popN(4);
+
+    const code  = state.vm.storage.getCode(addressToBuffer(address));
+    const codeCopy = getDataSlice(code, Number(codeOffset), Number(length));
+    state.memory.set(Number(memOffset), Number(length), codeCopy);
+};
+
+export const opReturnDataSize = async (state: State) => {
+    const result = BigInt(state.returnData);
     state.stack.push(result);
 };

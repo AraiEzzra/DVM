@@ -33,7 +33,7 @@ export type PostStateJSON = {
         value: number;
     },
     logs: string;
-}
+};
 
 export type TestJSON = {
     env: EnvJSON;
