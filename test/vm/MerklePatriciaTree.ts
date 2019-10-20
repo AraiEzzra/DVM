@@ -3,27 +3,22 @@ import { promisify } from 'util';
 
 export class MerklePatriciaTree {
     
-    private trie: SecureTrie;
+    readonly trie: SecureTrie;
 
-    constructor() {
-        this.trie = new SecureTrie();
-
-        // TODO add event
-        // const put = this.trie.put.bind(this.trie);
-        // this.trie.put = (key, value, cb) => {
-        //   put(key, value, (...args) => {
-        //     console.log('put', this.trie.root.toString('hex'), key.toString('hex'), value.toString('hex'))
-        //     cb(...args);
-        //   })
-        // }
+    constructor(trie?: SecureTrie) {
+        this.trie = trie || new SecureTrie();
     }
 
     get root(): Buffer {
         return this.trie.root;
     }
 
-    copy(): SecureTrie {
-        return this.trie.copy();
+    set root(value: Buffer) {
+        this.trie.root = value;
+    }
+
+    copy(): MerklePatriciaTree {
+        return new MerklePatriciaTree(this.trie.copy());
     }
 
     put(key: Buffer, value: Buffer) {

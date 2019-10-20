@@ -1,89 +1,63 @@
-import { IContext } from 'src/IContext';
-import { IStorage } from 'src/IStorage';
-import { OpCode, isPush, pushBytes } from 'src/interpreter/OpCode';
-import { Instruction } from 'src/interpreter/Instruction';
-import { Instructions } from 'src/interpreter/Instructions';
 import { State } from 'src/interpreter/State';
-import { EEI } from 'src/EEI';
-import { ERROR, VmError, VmStop } from 'src/interpreter/exceptions';
-import { VMResult } from 'src/VM';
+import { VM } from 'src/VM';
+import { Contract } from 'src/Contract';
+import { InstructionsIterable } from 'src/interpreter/InstructionsIterable';
+import { opCodeToString, OpCode } from 'src/interpreter/OpCode';
+import { VmError, ERROR } from '../exceptions';
+
+export type InterpreterResult = {
+    returnData: Buffer;
+    error?: Error;
+};
 
 export class Interpreter {
 
-    private readonly state: State;
+    readonly vm: VM;
 
-    constructor(context: IContext, storage: IStorage) {
-        const eei = new EEI(context);
-        this.state = new State(eei, storage);
+    readonly contract: Contract;
+
+    constructor(vm: VM, contract: Contract) {
+        this.vm = vm;
+        this.contract = contract;
     }
 
-    async run(code: Buffer): Promise<VMResult> {
-        this.state.code = code;
-        this.state.validJumps = this.getValidJumpDests(code);
+    async run(input: Buffer, readOnly: boolean): Promise<InterpreterResult> {
+        let error: Error;
+        const state = new State(this);
+        const instructions = new InstructionsIterable(state);
 
-        while (this.state.programCounter < this.state.code.length) {
-            const opCode = this.state.code[this.state.programCounter];
-            this.state.opCode = opCode;
+        this.contract.input = input;
+        state.readOnly = readOnly;
 
-            try {
-                await this.runStep();
-            } catch (e) {
-                if (e instanceof VmStop) {
-                    // TODO
-                } else {
-                    throw new Error(e);
-                }
-                break;
-            }
-        }
+        this.vm.addDepth();
 
-        return Promise.resolve({
-            out: this.state.eei.result.value,
-            gasUsed: this.state.eei.gasLimit - this.state.eei.gasLeft
-        });
-    }
+        try {
+
+            for (const instruction of instructions) {
+
+                instruction.verifyState(state);
+
+                this.vm.emit('step', state);
     
-    async runStep() {
-        const instruction = this.getInstruction(this.state.opCode);
-
-        instruction.useGas(this.state);
-
-        if (instruction.useMemory) {
-            instruction.useMemory(this.state);
-        }
-
-        this.state.programCounter++;
-
-        instruction.isAsync
-            ? await instruction.execute(this.state)
-            : instruction.execute(this.state);
-    }
-
-    private getInstruction(opCode: OpCode): Instruction {
-        const instruction = Instructions[opCode] as Instruction;
-        if (instruction === undefined) {
-            throw new VmError(ERROR.INVALID_OPCODE(opCode));
-        }
-        return instruction;
-    }
-
-    private getValidJumpDests(codes: Buffer): Set<number> {
-        const jumps = new Set<number>();
-
-        for (let i = 0; i < codes.length; i++) {
-            const code = codes[i];
-            const instruction = this.getInstruction(code);
-
-            // no destinations into the middle of PUSH
-            if (isPush(instruction.opCode)) {
-                i += pushBytes(code);
+                instruction.useGas(state);
+    
+                if (instruction.useMemory) {
+                    instruction.useMemory(state);
+                }
+    
+                instruction.isAsync
+                    ? await instruction.execute(state)
+                    : instruction.execute(state);
             }
 
-            if (instruction.opCode === OpCode.JUMPDEST) {
-                jumps.add(i);
-            }
+        } catch (returnError) {
+            this.vm.emit('vmerror', returnError);
+            error = returnError;
         }
 
-        return jumps;
+        return {
+            error,
+            returnData: state.returnData
+        };
     }
 }

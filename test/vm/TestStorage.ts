@@ -1,25 +1,36 @@
 import { IStorage } from 'src/IStorage';
 import { hexToBuffer } from 'test/helpers';
-import { AccountJSON } from 'test/vm/VmJSON';
+import { AccountJSON } from 'test/GeneralStateTests/TestsJSON';
 import { MerklePatriciaTree } from 'test/vm/MerklePatriciaTree';
 import * as rlp from 'rlp';
 import { keccak256 } from 'src/interpreter/hash';
 import { bigIntToBuffer } from 'src/interpreter/utils';
+import { Log } from 'src/Log';
 
 export type Account = {
     address: Buffer;
     code: Buffer;
     nonce: bigint;
     balance: bigint;
+    suicided: boolean;
     storage: Map<string, Buffer>;
 };
 
 export class TestStorage implements IStorage {
 
-    readonly data: Map<string, Account>;
+    private data: Map<string, Account>;
+
+    private touched: Set<string>;
+
+    private logList: Array<Log>;
+
+    private refund: bigint;
 
     constructor(data: {[address: string]: AccountJSON} = {}) {
         this.data = new Map();
+        this.touched = new Set();
+        this.logList = [];
+        this.refund = 0n;
 
         Object.entries(data).forEach(([key, value]) => this.putAccount(key, value));
     }
@@ -36,6 +47,7 @@ export class TestStorage implements IStorage {
 
         const account: Account = {
             address,
+            suicided: false,
             code: hexToBuffer(value.code),
             nonce: BigInt(value.nonce),
             balance: BigInt(value.balance),
@@ -50,17 +62,70 @@ export class TestStorage implements IStorage {
         return this.data.get(key);
     }
 
+    snapshot() {
+        return new Map([...this.data.entries()].map(([key, item]) => {
+            const cloneItem = { ...item, storage: new Map(item.storage) };
+            return [key, cloneItem];
+        }));
+    }
+        
+    revertToSnapshot(value: any) {
+        this.data = value;
+    }
+
+    createAccount(address: Buffer) {
+        const key = address.toString('hex');
+        
+        this.putAccount(key, {
+            code: '',
+            balance: '',
+            nonce: '',
+            storage: {}
+        });
+    }
+
+    setCode(address: Buffer, code: Buffer) {
+        this.getOrNewAccount(address).code = code;
+    }
+
+    exist(address: Buffer): boolean {
+        const key = address.toString('hex');
+        return this.data.has(key);
+    }
+
+    empty(address: Buffer): boolean {
+        const account = this.getAccount(address);
+        if (account) {
+            return account.nonce === 0n
+                && account.balance === 0n
+                && account.code.length === 0
+                && account.storage.size === 0;
+        }
+        return true;
+    }
+
+    suicide(address: Buffer) {
+        const account = this.getAccount(address);
+        if (account) {
+            account.suicided = true;
+        }
+    }
+
+    hasSuicided(address: Buffer): boolean {
+        const account = this.getAccount(address);
+        if (account) {
+            return account.suicided;
+        }
+        return false;
+    }
+
     private getOrNewAccount(address: Buffer): Account {
         const key = address.toString('hex');
 
+        this.touched.add(key);
+
         if (!this.data.has(key)) {
-            this.data.set(key, {
-                address,
-                code: Buffer.alloc(0),
-                nonce: 0n,
-                balance: 0n,
-                storage: new Map()
-            });
+            this.createAccount(address);
         }
 
         return this.data.get(key);
@@ -105,6 +170,22 @@ export class TestStorage implements IStorage {
         return Buffer.alloc(0);
     }
 
+    getCodeSize(address: Buffer): bigint {
+        const account = this.getAccount(address);
+        if (account) {
+            return BigInt(account.code.length);
+        }
+        return 0n;
+    }
+
+    getCodeHash(address: Buffer): Buffer {
+        const account = this.getAccount(address);
+        if (account) {
+            return keccak256(account.code);
+        }
+        return Buffer.alloc(0);
+    }
+
     get size(): number {
         return 0;
     }
@@ -129,23 +210,27 @@ export class TestStorage implements IStorage {
         }
     }
 
+    getData(): Array<Account> {
+        return [...this.data.values()]
+            .filter(item => !(this.empty(item.address) || this.hasSuicided(item.address)));
+            // .filter(item => this.touched.has(item.address.toString('hex')) && !(this.empty(item.address) || this.hasSuicided(item.address)));
+    } 
+
     async toMerklePatriciaTree(): Promise<MerklePatriciaTree> {
         const tree = new MerklePatriciaTree();
 
-        const accounts = [...this.data.values()].map(async item => {
+        for (const item of this.getData()) {
             const codeHash = keccak256(item.code);
             const storageTrie = tree.copy();
 
             storageTrie.root = null;
 
-            const storage = [...item.storage.entries()].map(async ([key, value]) => {
-                return await storageTrie.put(
+            for (const [key, value] of item.storage.entries()) {
+                await storageTrie.put(
                     Buffer.from(key, 'hex'),
                     rlp.encode(value)
                 );
-            });
-
-            await Promise.all(storage);
+            }
 
             await tree.putRaw(codeHash, item.code);
 
@@ -157,14 +242,61 @@ export class TestStorage implements IStorage {
             ]);
     
             await tree.put(item.address, serialize);
-        });
-
-        await Promise.all(accounts);
+        }
 
         return tree;
     }
 
-    toString(): string {
-        return '';
+    addRefund(gas: bigint) {
+        this.refund += gas;
+    }
+
+    subRefund(gas: bigint) {
+        if (gas > this.refund) {
+            throw new Error('Refund counter below zero');
+        }        
+        this.refund -= gas;
+    }
+    
+    getRefund(): bigint {
+        return this.refund;
+    }
+
+    addLog(log: Log) {
+        this.logList.push(log);
+    }
+
+    logs(): Array<Log> {
+        return this.logList;
+    }
+
+    print() {
+        const foo: any = {};
+
+        for (let account of this.getData()) {
+            const address = account.address.toString('hex');
+            foo[address] = {
+                address,
+                balance: account.balance,
+                nonce: account.nonce
+              };
+
+              foo[address]['storage'] = account.storage;
+        }
+
+        const accounts: Array<any> =  Object.values(foo).sort((x: any, y: any) => x.address.localeCompare(y.address))
+        for (let account of accounts) {
+          console.log('--------------------------------------');
+          console.log('address', account.address);
+          console.log('balance', account.balance);
+          console.log('nonce', account.nonce);
+          [...account.storage.entries()]
+              .map(([key, value]) => ({key, value}))
+              .sort((x, y) => x.key.localeCompare(y.key))
+              .forEach(item => {
+                console.log(`${item.key}: ${item.value.toString('hex')}`);
+              })
+        }
+  
     }
 }
