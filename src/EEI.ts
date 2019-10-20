@@ -74,7 +74,7 @@ export class EEI {
         return this.context.currentNumber;
     }
 
-    getBlockCoinbase(): bigint {
+    getBlockCoinbase(): Buffer {
         return this.context.currentCoinbase;
     }
 
@@ -82,7 +82,7 @@ export class EEI {
         return this.context.currentTimestamp;
     }
 
-    getBlockDifficulty(): bigint {
+    getBlockDifficulty(): Buffer {
         return this.context.currentDifficulty;
     }
 
@@ -102,5 +102,4 @@ export class EEI {
     log(data: Buffer, numberOfTopics: number, topics: Buffer[]) {
         // TODO
     }
-
 }

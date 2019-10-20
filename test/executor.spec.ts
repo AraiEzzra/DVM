@@ -57,7 +57,7 @@ const testOpFn = (stack: Array<string>, opFn: ExecutorSync, expected: string) =>
     isBigIntEqual(state.stack.pop(), BigInt(`0x${expected}`));
 };
 
-describe('opFn', () => {
+describe('Executors', () => {
 
     twoOpMethods.forEach((opFn, name) => {
         it(name, async () => {

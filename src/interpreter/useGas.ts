@@ -35,6 +35,8 @@ export const useGasSload = (state: State) => state.eei.useGas(GAS.SloadGasFronti
 
 export const useGasJumpdest = (state: State) => state.eei.useGas(GAS.JumpdestGas);
 
+export const useGasBalance = (state: State) => state.eei.useGas(GAS.BalanceGasFrontier);
+
 export const useGasSstore = (state: State) => {
     let [keyBE, valueBE] = state.stack.peekN(2);
     const key = toBufferBE(keyBE, 32);
@@ -42,7 +44,7 @@ export const useGasSstore = (state: State) => {
         ? Buffer.alloc(0)
         : toBufferBE(valueBE, 32);
 
-    const currentValue = state.storage.getValue('', key);
+    const currentValue = state.storage.getValue(state.eei.getAddress(), key);
 
     if (value.length === 0 && currentValue.length === 0) {
         state.eei.useGas(GAS.SstoreResetGas);

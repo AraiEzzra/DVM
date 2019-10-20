@@ -1,15 +1,15 @@
 import { IContext } from 'src/IContext';
-import { EnvJSON, EmptyEnvJSON, ExecJSON, EmptyExecJSON } from 'test/vm/VmJSON';
-import { hexToBuffer } from 'test/vm';
+import { EnvJSON, ExecJSON } from 'test/vm/VmJSON';
+import { hexToBuffer, hexToBigInt } from 'test/helpers';
 
 export class TestContext implements IContext {
 
-    currentCoinbase: bigint;
-    currentDifficulty: bigint;
+    currentCoinbase: Buffer;
+    currentDifficulty: Buffer;
     currentGasLimit: bigint;
     currentNumber: bigint;
     currentTimestamp: bigint;
-    previousHash: bigint;
+    previousHash: Buffer;
 
     address: Buffer;
     origin: Buffer;
@@ -20,12 +20,12 @@ export class TestContext implements IContext {
     gasPrice: bigint;
     gas: bigint;
 
-    constructor(env: EnvJSON = EmptyEnvJSON, exec: ExecJSON = EmptyExecJSON) {
-        this.currentCoinbase = BigInt(env.currentCoinbase);
-        this.currentDifficulty = BigInt(env.currentDifficulty);
-        this.currentGasLimit = BigInt(env.currentGasLimit);
-        this.currentNumber = BigInt(env.currentNumber);
-        this.currentTimestamp = BigInt(env.currentTimestamp);
+    constructor(env: EnvJSON = <EnvJSON>{}, exec: ExecJSON = <ExecJSON>{}) {
+        this.currentCoinbase = hexToBuffer(env.currentCoinbase);
+        this.currentDifficulty = hexToBuffer(env.currentDifficulty);
+        this.currentGasLimit = hexToBigInt(env.currentGasLimit);
+        this.currentNumber = hexToBigInt(env.currentNumber);
+        this.currentTimestamp = hexToBigInt(env.currentTimestamp);
         
         this.address = hexToBuffer(exec.address);
         this.origin = hexToBuffer(exec.origin);
@@ -33,7 +33,7 @@ export class TestContext implements IContext {
         this.value = hexToBuffer(exec.value);
         this.data = hexToBuffer(exec.data);
         this.code = hexToBuffer(exec.code);
-        this.gasPrice = BigInt(exec.gasPrice);
-        this.gas = BigInt(exec.gas);
+        this.gasPrice = hexToBigInt(exec.gasPrice);
+        this.gas = hexToBigInt(exec.gas);
     }
 }
