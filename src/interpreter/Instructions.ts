@@ -30,6 +30,7 @@ import {
     useGasExtCodeSize,
     useGasExtCodeCopy,
     useGasDelegateCall,
+    useGasCreate,
  } from 'src/interpreter/useGas';
 
  import {
@@ -110,7 +111,8 @@ import {
     opExtCodeSize,
     opExtCodeCopy,
     opDelegateCall,
-    opReturnDataSize
+    opReturnDataSize,
+    opCreate
 } from 'src/interpreter/executors';
 
 export const InstructionList: Array<Instruction> = [
@@ -780,10 +782,10 @@ export const InstructionList: Array<Instruction> = [
         execute: opLog,
         useGas: useGasLog
     }),
-    new InstructionSync({
+    new InstructionAsync({
         opCode: OpCode.CREATE,
-        execute: opInvalid,
-        useGas: useGasInvalid
+        execute: opCreate,
+        useGas: useGasCreate
     }),
     new InstructionAsync({
         opCode: OpCode.CALL,

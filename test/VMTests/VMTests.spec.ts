@@ -1,10 +1,10 @@
 import { expect } from 'chai';
 import { hexToBuffer, loadTestCases, hexToBigInt, logsToHash } from 'test/helpers';
 import { TestsJSON, TestJSON } from 'test/VMTests/TestsJSON';
-import { VmError } from 'src/interpreter/exceptions';
 import { VM, VMCallResult } from 'src/VM';
 import { TestContext } from 'test/VMTests/TestContext';
 import { TestStorage } from 'test/vm/TestStorage';
+import { testConfig } from 'test/VMTests/TestConfig';
 
 const TEST_CASES = [
     'VMTests/vmArithmeticTest',
@@ -29,7 +29,7 @@ TEST_CASES.forEach(testCasesName => {
                 it(testName, async () => {
                     const context = new TestContext(testJSON);
                     const storage = new TestStorage(testJSON.pre);
-                    const vm = new VM(context, storage);
+                    const vm = new VM(context, storage, testConfig);
 
                     const { returnData, leftOverGas, error } = await execute(vm, testJSON);
                     const logs = logsToHash(storage.logs());
@@ -43,6 +43,9 @@ TEST_CASES.forEach(testCasesName => {
                         }
                         return;
                     }
+
+                    // console.log(returnData, leftOverGas, error)
+                    // console.log(storage.getData())
 
                     const expectReturnData = hexToBuffer(testJSON.out);
                     const expectGas = hexToBigInt(testJSON.gas);
@@ -59,9 +62,9 @@ TEST_CASES.forEach(testCasesName => {
                     ).to.equal(true);
 
                     expect(
-                        storage.data,
+                        storage.getData(),
                         `wrong storage value`
-                    ).to.deep.equal(new TestStorage(testJSON.post).data);
+                    ).to.deep.equal(new TestStorage(testJSON.post).getData());
 
                     expect(
                         expectLogs.equals(logs),

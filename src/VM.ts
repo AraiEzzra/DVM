@@ -1,11 +1,11 @@
 import { IContext } from 'src/IContext';
 import { IStorage } from 'src/IStorage';
+import { Config, PARAMS } from 'src/Config';
 import { Message } from 'src/Message';
 import { GasPool } from 'src/GasPool';
 import { StateTransition } from 'src/StateTransition';
 import { Interpreter } from 'src/interpreter/Interpreter';
 import { Contract, ContractRef, IPrecompiledContract } from 'src/Contract';
-import { PARAMS } from 'src/constants';
 import { VmError, ERROR } from 'src/interpreter/exceptions';
 import { getPrecompiledContract } from 'src/precompiles';
 
@@ -16,6 +16,7 @@ export type VMCallResult = {
 };
 
 export type VMCreateResult = {
+    contractAddress: Buffer;
     returnData: Buffer;
     leftOverGas: bigint;
     error?: Error;
@@ -29,9 +30,13 @@ export class VM {
 
     readonly storage: IStorage;
 
-    constructor(context: IContext, storage: IStorage) {
+    readonly config: Config;
+
+    constructor(context: IContext, storage: IStorage, config: Config) {
         this.context = context;
         this.storage = storage;
+        this.config = config;
+        this.config.params = { ...PARAMS, ...config.params };
         this.depth = 0;
     }
 
@@ -69,7 +74,7 @@ export class VM {
 
     // TODO
     async call(caller: ContractRef, address: Buffer, input: Buffer, gas: bigint, value: bigint): Promise<VMCallResult> {
-        if (this.depth > PARAMS.CallCreateDepth) {
+        if (this.depth > this.config.params.CallCreateDepth) {
             return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
         }
 
@@ -113,7 +118,7 @@ export class VM {
 
     // TODO
     async callCode(caller: ContractRef, address: Buffer, input: Buffer, gas: bigint, value: bigint): Promise<VMCallResult> {
-        if (this.depth > PARAMS.CallCreateDepth) {
+        if (this.depth > this.config.params.CallCreateDepth) {
             return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
         }
 
@@ -148,7 +153,7 @@ export class VM {
 
     // TODO
     async delegateCall(caller: ContractRef, address: Buffer, input: Buffer, gas: bigint): Promise<VMCallResult> {
-        if (this.depth > PARAMS.CallCreateDepth) {
+        if (this.depth > this.config.params.CallCreateDepth) {
             return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
         }
 
@@ -177,10 +182,73 @@ export class VM {
         }
     }
 
-    // TODO
-    // async create(caller: ContractRef, ): Promise<VMCreateResult> {
-                
-    // }
+    private async createContract(caller: ContractRef, code: Buffer, gas: bigint, value: bigint, address: Buffer): Promise<VMCreateResult> {
+        if (this.depth > this.config.params.CallCreateDepth) {
+            return { contractAddress: null, returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
+        }
+
+        if (!this.context.canTransfer(this.storage, caller.address, value)) {
+            return { contractAddress: null, returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.INSUFFICIENT_BALANCE) };
+        }
+
+        const nonce = this.storage.getNonce(caller.address);
+        this.storage.setNonce(caller.address, nonce + 1n);
+
+        const contractCode = this.storage.getCode(address);
+
+        if (this.storage.getNonce(address) !== 0n || contractCode.length !== 0) {
+            return { contractAddress: null, returnData: Buffer.alloc(0), leftOverGas: 0n, error: new VmError(ERROR.CONTRACT_ADDRESS_COLLISION) };
+        }
+
+        const snapshot = this.storage.snapshot();
+
+        this.storage.createAccount(address);
+        this.storage.setNonce(address, 1n);
+        this.context.transfer(this.storage, caller.address, address, value);
+
+        const contract = new Contract(caller, this.accountRef(address), value, gas);
+        contract.setCallCode(address, code);
 
         
+        try {
+
+            const returnData = await this.run(contract, null);
+
+            if (returnData.length > this.config.params.MaxCodeSize) {
+                throw new Error(ERROR.MAX_CODE_SIZE_EXCEEDED);
+            }
+
+            const createDataGas = BigInt(returnData.length) * this.config.params.CreateDataGas;
+
+            contract.useGas(createDataGas);
+
+            this.storage.setCode(address, returnData);
+
+            return {
+                contractAddress: address,
+                leftOverGas: contract.gas,
+                returnData
+            }
+
+        } catch (error) {
+
+            this.storage.revertToSnapshot(snapshot);
+            
+            contract.useGas(contract.gas);
+
+            return {
+                contractAddress: address,
+                returnData: Buffer.alloc(0),
+                leftOverGas: contract.gas,
+                error
+            };
+        }
+                  
+    }
+
+    //TODO
+    async create(caller: ContractRef, code: Buffer, gas: bigint, value: bigint): Promise<VMCreateResult> {
+        const contractAddress = this.config.createAddress(caller.address, this.storage.getNonce(caller.address));
+        return this.createContract(caller, code, gas, value, contractAddress);
+    }        
 }

@@ -5,11 +5,13 @@ import { Memory } from 'src/interpreter/Memory';
 import { VM } from 'src/VM';
 import { Interpreter } from 'src/interpreter/Interpreter';
 import { Contract } from 'src/Contract';
+import { Params } from 'src/Config';
 
 export class State {
     interpreter: Interpreter;
     contract: Contract;
     vm: VM;
+    params: Params;
     stack: Stack;
     memory: Memory;
     programCounter: number;
@@ -25,8 +27,9 @@ export class State {
         this.interpreter = interpreter;
         this.contract = interpreter.contract;
         this.vm = interpreter.vm;
+        this.params = interpreter.vm.config.params;
 
-        this.stack = new Stack();
+        this.stack = new Stack(this.params.StackLimit);
         this.memory = new Memory();
         this.programCounter = 0;
         this.opCode = null;

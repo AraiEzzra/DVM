@@ -1,4 +1,4 @@
-import { PARAMS } from 'src/constants';
+import { PARAMS } from 'src/Config';
 import { IPrecompiledContract } from 'src/Contract';
 import { bufferPadEnd } from 'src/interpreter/utils';
 
@@ -9,6 +9,7 @@ import { setLengthLeft, setLengthRight, ecrecover, publicToAddress } from 'ether
 export class Ecrecover implements IPrecompiledContract {
 
     requiredGas(input: Buffer): bigint {
+        // TODO move to vm.config.params
         return PARAMS.EcrecoverGas;
     }
     

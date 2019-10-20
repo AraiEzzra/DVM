@@ -4,8 +4,7 @@ import { State } from 'src/interpreter/State';
 import { VmError, ERROR } from 'src/interpreter/exceptions';
 import { U256 } from 'src/interpreter/U256';
 import { keccak256 } from 'src/interpreter/hash';
-import { getDataSlice, bigIntToBuffer, addressToBuffer } from 'src/interpreter/utils';
-import { PARAMS } from 'src/constants';
+import { getDataSlice, bigIntToBuffer } from 'src/interpreter/utils';
 
 export const opInvalid = (state: State) => {
     throw new VmError(ERROR.INVALID_OPCODE(state.opCode));
@@ -433,14 +432,14 @@ export const opLog = (state: State) => {
 export const opSuicide = (state: State) => {
     const address = state.stack.pop();
     const balance = state.vm.storage.getBalance(state.contract.address);
-    state.vm.storage.addBalance(addressToBuffer(address), balance);
+    state.vm.storage.addBalance(state.vm.config.bigIntToAddress(address), balance);
 
     state.vm.storage.suicide(state.contract.address);
 };
 
 export const opBalance = (state: State) => {
     const address = state.stack.pop();
-    const result = state.vm.storage.getBalance(addressToBuffer(address));
+    const result = state.vm.storage.getBalance(state.vm.config.bigIntToAddress(address));
 
     state.stack.push(result);
 };
@@ -456,7 +455,7 @@ export const opCall = async (state: State) => {
         outLength,
     ] = state.stack.popN(7);
 
-    const toAddressBuf = addressToBuffer(toAddress);
+    const toAddressBuf = state.vm.config.bigIntToAddress(toAddress);
 
     let gas = state.callGasTemp;
 
@@ -465,7 +464,7 @@ export const opCall = async (state: State) => {
         : state.memory.get(Number(inOffset), Number(inLength));
 
     if (value !== 0n) {
-        gas += PARAMS.CallStipend;
+        gas += state.params.CallStipend;
     }
 
     const { returnData, leftOverGas, error } = await state.vm.call(state.contract, toAddressBuf, data, gas, value);
@@ -491,7 +490,7 @@ export const opCallCode = async (state: State) => {
         outLength,
     ] = state.stack.popN(7);
 
-    const toAddressBuf = addressToBuffer(toAddress);
+    const toAddressBuf = state.vm.config.bigIntToAddress(toAddress);
 
     let gas = state.callGasTemp;
 
@@ -500,7 +499,7 @@ export const opCallCode = async (state: State) => {
         : state.memory.get(Number(inOffset), Number(inLength));
 
     if (value !== 0n) {
-        gas += PARAMS.CallStipend;
+        gas += state.params.CallStipend;
     }
 
     const { returnData, leftOverGas, error } = await state.vm.callCode(state.contract, toAddressBuf, data, gas, value);
@@ -518,7 +517,7 @@ export const opCallCode = async (state: State) => {
 export const opDelegateCall = async (state: State) => {
     let [gasLimit, toAddress, inOffset, inLength, outOffset, outLength] = state.stack.popN(6);
 
-    const toAddressBuf = addressToBuffer(toAddress);
+    const toAddressBuf = state.vm.config.bigIntToAddress(toAddress);
 
     let gas = state.callGasTemp;
 
@@ -540,20 +539,40 @@ export const opDelegateCall = async (state: State) => {
 
 export const opExtCodeSize = async (state: State) => {
     const address = state.stack.pop();
-    const result = state.vm.storage.getCodeSize(addressToBuffer(address));
+    const result = state.vm.storage.getCodeSize(state.vm.config.bigIntToAddress(address));
     state.stack.push(result);
 };
-
 
 export const opExtCodeCopy = async (state: State) => {
     let [address, memOffset, codeOffset, length] = state.stack.popN(4);
 
-    const code  = state.vm.storage.getCode(addressToBuffer(address));
+    const code  = state.vm.storage.getCode(state.vm.config.bigIntToAddress(address));
     const codeCopy = getDataSlice(code, Number(codeOffset), Number(length));
     state.memory.set(Number(memOffset), Number(length), codeCopy);
 };
 
 export const opReturnDataSize = async (state: State) => {
-    const result = BigInt(state.returnData);
+    const result = BigInt(state.returnData.length);
     state.stack.push(result);
 };
+
+export const opCreate = async (state: State) => {
+    const [value, offset, length] = state.stack.popN(3);
+
+    const gas = state.contract.gas - state.contract.gas / 64n;
+    const input = state.memory.get(Number(offset), Number(length));
+
+    state.contract.useGas(gas);
+
+    const { contractAddress, returnData, leftOverGas, error } = await state.vm.create(state.contract, input, gas, value);
+
+    if (error) {
+        state.stack.push(0n);
+    } else {
+        state.stack.push(toBigIntBE(contractAddress));
+    }
+
+    state.contract.gas += leftOverGas;
+    state.returnData = returnData;
+};
+

@@ -5,7 +5,7 @@ export interface IContext {
 	// sufficient ether to transfer the value
 	canTransfer(storage: IStorage, address: Buffer, amount: bigint): boolean;
 	// Transfer transfers ether from one account to the other
-	transfer(storage: IStorage, sender: Buffer, recipient: Buffer, amount: bigint);
+	transfer(storage: IStorage, sender: Buffer, recipient: Buffer, amount: bigint): void;
     // Message information
     origin: Buffer;   // Provides information for ORIGIN
     gasPrice: bigint; // Provides information for GASPRICE

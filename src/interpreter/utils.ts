@@ -24,5 +24,3 @@ export const bigIntToBuffer = (value: bigint): Buffer => {
     return Buffer.from(hex, 'hex');
 };
 
-// TODO
-export const addressToBuffer = (address: bigint): Buffer => toBufferBE(address, 20);

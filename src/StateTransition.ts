@@ -2,7 +2,6 @@ import { VM, VMCallResult } from 'src/VM';
 import { Message } from 'src/Message';
 import { GasPool } from 'src/GasPool';
 import { VmError, ERROR } from 'src/interpreter/exceptions';
-import { PARAMS } from 'src/constants';
 
 export class StateTransition {
 
@@ -40,12 +39,15 @@ export class StateTransition {
         this.vm.storage.subBalance(this.message.from, value);
     }
 
-    intrinsicGas(data: Buffer): bigint {
-        let gas = PARAMS.TxGas;
+    intrinsicGas(data: Buffer, contractCreation: boolean): bigint {
+        let gas = contractCreation
+            ? this.vm.config.params.TxGasContractCreation
+            : this.vm.config.params.TxGas;
+
         for (let i = 0; i < data.length; i++) {
             gas += data[i] === 0
-                ? PARAMS.TxDataZeroGas
-                : PARAMS.TxDataNonZeroGas;
+                ? this.vm.config.params.TxDataZeroGas
+                : this.vm.config.params.TxDataNonZeroGas;
         }
         return gas;
     }
@@ -58,9 +60,11 @@ export class StateTransition {
     }
 
     refundGas() {
-        // TODO
-        // const refund = this.gasUsed() / 2n;
-        // this.gas += refund;
+        let refund = this.gasUsed() / 2n;
+        if (refund > this.vm.storage.getRefund()) {
+            refund = this.vm.storage.getRefund();
+        }
+        this.gas += refund;
 
         const remaining = this.gas * this.message.gasPrice;
         this.vm.storage.addBalance(this.message.from, remaining);
@@ -78,13 +82,19 @@ export class StateTransition {
         this.buyGas();
 
         const sender = vm.accountRef(message.from);
-        const gas = this.intrinsicGas(message.data);
+        // TODO add null to to
+        const contractCreation = this.message.to.length === 0;
+        const gas = this.intrinsicGas(message.data, contractCreation);
 
         this.useGas(gas);
 
-        vm.storage.setNonce(sender.address, vm.storage.getNonce(sender.address) + 1n);
-
-        const result = await this.vm.call(sender, message.to, message.data, this.gas, message.value);
+        let result;
+        if (contractCreation) {
+            result = await this.vm.create(sender, message.data, this.gas, message.value);
+        } else {
+            vm.storage.setNonce(sender.address, vm.storage.getNonce(sender.address) + 1n);
+            result = await this.vm.call(sender, message.to, message.data, this.gas, message.value);
+        }
 
         this.gas = result.leftOverGas;
 

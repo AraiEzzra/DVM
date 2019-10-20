@@ -18,6 +18,9 @@ export class ERROR {
     static INSUFFICIENT_BALANCE = 'insufficient balance for transfer';
     static GAS_LIMIT_REACHED = 'gas limit reached';
     static INSUFFICIENT_BALANCE_FOR_GAS = 'insufficient balance to pay for gas';
+    static CONTRACT_ADDRESS_COLLISION = 'contract address collision';
+    static MAX_CODE_SIZE_EXCEEDED = 'evm: max code size exceeded';
 }
 
 export class VmError extends Error {}
+

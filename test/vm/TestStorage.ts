@@ -6,25 +6,28 @@ import * as rlp from 'rlp';
 import { keccak256 } from 'src/interpreter/hash';
 import { bigIntToBuffer } from 'src/interpreter/utils';
 import { Log } from 'src/Log';
-import json5 = require('json5');
 
 export type Account = {
     address: Buffer;
     code: Buffer;
     nonce: bigint;
     balance: bigint;
+    suicided: boolean;
     storage: Map<string, Buffer>;
 };
 
 export class TestStorage implements IStorage {
 
-    data: Map<string, Account>;
+    private data: Map<string, Account>;
 
     private logList: Array<Log>;
+
+    private refund: bigint;
 
     constructor(data: {[address: string]: AccountJSON} = {}) {
         this.data = new Map();
         this.logList = [];
+        this.refund = 0n;
 
         Object.entries(data).forEach(([key, value]) => this.putAccount(key, value));
     }
@@ -41,6 +44,7 @@ export class TestStorage implements IStorage {
 
         const account: Account = {
             address,
+            suicided: false,
             code: hexToBuffer(value.code),
             nonce: BigInt(value.nonce),
             balance: BigInt(value.balance),
@@ -68,6 +72,7 @@ export class TestStorage implements IStorage {
 
     createAccount(address: Buffer) {
         const key = address.toString('hex');
+        
         this.putAccount(key, {
             code: '',
             balance: '',
@@ -77,7 +82,7 @@ export class TestStorage implements IStorage {
     }
 
     setCode(address: Buffer, code: Buffer) {
-        throw new Error('Method not implemented.');
+        this.getOrNewAccount(address).code = code;
     }
 
     exist(address: Buffer): boolean {
@@ -85,9 +90,27 @@ export class TestStorage implements IStorage {
         return this.data.has(key);
     }
 
+    empty(address: Buffer): boolean {
+        const account = this.getAccount(address);
+        if (account) {
+            return account.nonce === 0n && account.balance === 0n && account.code.length === 0;
+        }
+        return true;
+    }
+
     suicide(address: Buffer) {
-        const key = address.toString('hex');
-        this.data.delete(key);
+        const account = this.getAccount(address);
+        if (account) {
+            account.suicided = true;
+        }
+    }
+
+    hasSuicided(address: Buffer): boolean {
+        const account = this.getAccount(address);
+        if (account) {
+            return account.suicided;
+        }
+        return false;
     }
 
     private getOrNewAccount(address: Buffer): Account {
@@ -171,43 +194,61 @@ export class TestStorage implements IStorage {
         }
     }
 
+    getData(): Array<Account> {
+        return [...this.data.values()]
+            .filter(item => !(this.empty(item.address) || this.hasSuicided(item.address)));
+    } 
+
     async toMerklePatriciaTree(): Promise<MerklePatriciaTree> {
         const tree = new MerklePatriciaTree();
 
-        const accounts = [...this.data.values()].map(async item => {
-            const codeHash = keccak256(item.code);
-            const storageTrie = tree.copy();
+        const accounts = this.getData()
+            .map(async item => {
 
-            storageTrie.root = null;
+                const codeHash = keccak256(item.code);
+                const storageTrie = tree.copy();
 
-            const storage = [...item.storage.entries()].map(async ([key, value]) => {
-                return await storageTrie.put(
-                    Buffer.from(key, 'hex'),
-                    rlp.encode(value)
-                );
+                storageTrie.root = null;
+
+                const storage = [...item.storage.entries()].map(async ([key, value]) => {
+                    return await storageTrie.put(
+                        Buffer.from(key, 'hex'),
+                        rlp.encode(value)
+                    );
+                });
+
+                await Promise.all(storage);
+
+                await tree.putRaw(codeHash, item.code);
+
+                const serialize = rlp.encode([
+                    bigIntToBuffer(item.nonce),
+                    bigIntToBuffer(item.balance),
+                    storageTrie.root,
+                    codeHash
+                ]);
+        
+                await tree.put(item.address, serialize);
             });
-
-            await Promise.all(storage);
-
-            await tree.putRaw(codeHash, item.code);
-
-            const serialize = rlp.encode([
-                bigIntToBuffer(item.nonce),
-                bigIntToBuffer(item.balance),
-                storageTrie.root,
-                codeHash
-            ]);
-    
-            await tree.put(item.address, serialize);
-        });
 
         await Promise.all(accounts);
 
         return tree;
     }
 
-    toString(): string {
-        return '';
+    addRefund(gas: bigint) {
+        this.refund += gas;
+    };
+
+    subRefund(gas: bigint) {
+        if (gas > this.refund) {
+            throw new Error('Refund counter below zero');
+        }        
+        this.refund -= gas;
+    }
+    
+	getRefund(): bigint {
+        return this.refund;
     }
 
     addLog(log: Log) {

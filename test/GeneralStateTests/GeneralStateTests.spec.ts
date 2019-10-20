@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { isBufferEqual, hexToBigInt, logsToHash } from 'test/helpers';
+import { hexToBigInt, logsToHash } from 'test/helpers';
 import { hexToBuffer, loadTestCases } from 'test/helpers';
-import { toBigIntBE } from 'bigint-buffer';
+import { testConfig } from 'test/vm/TestConfig';
 import { TestsJSON, TransactionJSON, PostStateJSON } from 'test/GeneralStateTests/TestsJSON';
 import { VM } from 'src/VM';
 import { TestStorage } from 'test/vm/TestStorage';
@@ -14,8 +14,10 @@ const TEST_CASES = [
     // 'GeneralStateTests/stArgsZeroOneBalance',
     // 'GeneralStateTests/stAttackTest',
     // 'GeneralStateTests/stBadOpcode',    
-    // 'GeneralStateTests/stCallCodes',
-    'GeneralStateTests/stReturnDataTest',
+    'GeneralStateTests/stCallCodes',
+    // 'GeneralStateTests/stReturnDataTest',
+    // 'GeneralStateTests/stSStoreTest',
+    
 ];
 
 const FORC = 'ConstantinopleFix';
@@ -27,32 +29,28 @@ TEST_CASES.forEach(testCasesName => {
         cases.forEach(item => {
             for (let [testName, test] of Object.entries(item)) {
 
-                // if (testName !== 'call_ecrec_success_empty_then_returndatasize') {
-                //     continue;
-                // }
-
-                if (!testName.endsWith('returndatasize')) {
-                    continue;
+                if (testName !== 'callcallcallcode_001') {
+                    //continue;
                 }
 
-                for (let post of test.post[FORC]) {
+                for (let post of test.post[FORC].slice(0, 1)) {
                     it(testName, async () => {
 
                         const storage = new TestStorage(test.pre);
                         const message = makeMessage(test.transaction, post);
                         const context = new TestContext(message, test);
-                        const vm = new VM(context, storage);
+                        const vm = new VM(context, storage, testConfig);
                         const gasPool = new GasPool(context.gasLimit);
 
                         const result = await vm.applyMessage(message, gasPool);
 
                         // console.log(result);
-                        // console.log(storage.data);
+                        // console.log(storage.getData());
 
-                        if (result.error) {
-                            console.log(result.error);
-                        }
-                        
+                        // if (result.error) {
+                        //     console.log(result.error);
+                        // }
+
                         const tree = await storage.toMerklePatriciaTree();
                         const logs = logsToHash(storage.logs());
 

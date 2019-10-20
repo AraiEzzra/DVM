@@ -1,12 +1,14 @@
-import { PARAMS } from 'src/constants';
 import { U256 } from 'src/interpreter/U256';
 import { ERROR, VmError } from 'src/interpreter/exceptions';
 
 export class Stack {
 
+    private readonly stackLimit: number;
+
     private readonly data: Array<bigint>;
 
-    constructor() {
+    constructor(stackLimit: number) {
+        this.stackLimit = stackLimit;
         this.data = [];
     }
 
@@ -18,7 +20,7 @@ export class Stack {
         if (value > U256.MAX_VALUE) {
             throw new VmError(ERROR.OUT_OF_RANGE);
         }
-        if (this.data.length === PARAMS.StackLimit) {
+        if (this.data.length === this.stackLimit) {
             throw new VmError(ERROR.STACK_OVERFLOW);
         }
         this.data.push(value);
