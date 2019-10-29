@@ -1,4 +1,5 @@
 -r ts-node/register
 -r tsconfig-paths/register
 --require test/helpers.ts
+--inspect
 test/**/*.spec.ts

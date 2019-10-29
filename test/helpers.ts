@@ -2,8 +2,9 @@ import fs from 'fs';
 import chai from 'chai';
 import { expect } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { Transaction } from 'ethereumjs-tx';
-import { TransactionJSON } from 'test/vm/VmJSON';
+import * as rlp from 'rlp';
+import { keccak256 } from 'src/interpreter/hash';
+import { Log } from 'src/Log';
 
 chai.use(chaiAsPromised);
 
@@ -50,21 +51,7 @@ export const loadTestCases = <T>(name: string): Array<T> => {
     });
 };
 
-export const makeTx = (txData: any): Transaction => {
-    const tx = new Transaction();
-    tx.nonce = hexToBuffer(txData.nonce);
-    tx.gasPrice = hexToBuffer(txData.gasPrice);
-    tx.gasLimit = hexToBuffer(txData.gasLimit);
-    tx.to = hexToBuffer(txData.to);
-    tx.value = hexToBuffer(txData.value);
-    tx.data = hexToBuffer(txData.data);
-    if (txData.secretKey) {
-        const privKey = hexToBuffer(txData.secretKey);
-        tx.sign(privKey);
-    } else {
-        tx.v = hexToBuffer(txData.v);
-        tx.r = hexToBuffer(txData.r);
-        tx.s = hexToBuffer(txData.s);
-    }
-    return tx;
+export const logsToHash = (logs: Array<Log>): Buffer => {
+    const value = logs.map(item => Object.values(item));
+    return keccak256(rlp.encode(value));
 };

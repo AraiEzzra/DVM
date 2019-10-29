@@ -14,7 +14,7 @@ export const bufferPadEnd = (buffer: Buffer, length: number, byte: number = 0x00
         : Buffer.concat([buffer, Buffer.alloc(length - buffer.length, byte)], length);
 };
 
-// TODO
+// TODO replace to toBufferBE
 export const bigIntToBuffer = (value: bigint): Buffer => {
     if (value === 0n) {
         return Buffer.alloc(0);
@@ -24,5 +24,3 @@ export const bigIntToBuffer = (value: bigint): Buffer => {
     return Buffer.from(hex, 'hex');
 };
 
-// TODO
-export const addressToBuffer = (address: bigint): Buffer => toBufferBE(address, 20);

@@ -21,6 +21,7 @@
     "@types/ethereumjs-tx": "^1.0.1",
     "@types/mocha": "^5.2.7",
     "@types/node": "^12.7.5",
+    "bn.js": "^5.0.0",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "ethereumjs-tx": "^2.1.1",

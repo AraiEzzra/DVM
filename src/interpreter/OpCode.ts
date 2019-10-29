@@ -101,8 +101,6 @@ export enum OpCode {
     DIFFICULTY = 0x44,
     // get the block's gas limit
     GASLIMIT = 0x45,
-    // get chain ID
-    CHAINID = 0x46,
     // get balance of own account
     SELFBALANCE = 0x47,
 
@@ -306,6 +304,10 @@ export const isPush = (opCode: OpCode): boolean => {
 // Returns number of bytes to read for `PUSHN` instruction
 // PUSH1 -> 1
 export const pushBytes = (byte: number) => byte - OpCode.PUSH1 + 1;
+
+// Returns number of bytes to read for `LOGN` instruction
+// LOG1 -> 1
+export const logBytes = (byte: number) => byte - OpCode.LOG0;
 
 // Returns stack position of item to SWAP top with
 // SWAP1 -> 1

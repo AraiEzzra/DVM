@@ -1,4 +1,4 @@
-import { ERROR, VmError } from 'src/interpreter/exceptions';
+import { ERROR, VmError } from 'src/exceptions';
 import { bufferPadEnd } from 'src/interpreter/utils';
 
 export class Memory {
@@ -18,6 +18,9 @@ export class Memory {
             if (offset + size > this.store.length) {
                 throw new VmError(ERROR.INVALID_MEMORY);
             }
+            if (value.length !== size) {
+                throw new VmError(ERROR.INVALID_MEMORY);
+            }
             for (let i = 0; i < size; i++) {
                 this.store[offset + i] = value[i];
             }
@@ -25,6 +28,9 @@ export class Memory {
     }
 
     get(offset: number, size: number): Buffer {
+        if (size === 0) {
+            return Buffer.alloc(0);
+        }
         const buffer = this.store.slice(offset, offset + size);
         return bufferPadEnd(buffer, size);
     }
