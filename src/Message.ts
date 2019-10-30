@@ -6,4 +6,5 @@ export type Message = {
     value: bigint;
     nonce: bigint;
     data: Buffer;
+    checkNonce: boolean;
 };

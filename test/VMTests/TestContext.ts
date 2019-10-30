@@ -1,7 +1,7 @@
 import { IContext } from 'src/IContext';
 import { IStorage } from 'src/IStorage';
 import { TestJSON } from 'test/VMTests/TestsJSON';
-import { hexToBuffer, hexToBigInt } from 'test/helpers';
+import { hexToBuffer, hexToBigInt } from 'test/utils';
 
 export class TestContext implements IContext {
     blockNumber: bigint;

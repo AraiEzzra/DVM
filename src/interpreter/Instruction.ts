@@ -3,11 +3,11 @@ import { State } from 'src/interpreter/State';
 import { VmError, ERROR } from 'src/exceptions';
 
 export interface ExecutorSync {
-    (state: State): void;
+    (state: State): Buffer;
 }
 
 export interface ExecutorAsync {
-    (state: State): Promise<void>;
+    (state: State): Promise<Buffer>;
 }
 
 export interface UseGas {
@@ -25,7 +25,6 @@ export interface UseMemory {
 
 export type InstructionData = {
     opCode: OpCode;
-    isAsync: boolean;
     execute: ExecutorSync | ExecutorAsync;
     useGas: UseGas;
     stackRange: StackRange;
@@ -33,40 +32,44 @@ export type InstructionData = {
     halts?: boolean;
     jumps?: boolean;
     writes?: boolean;
+    returns?: boolean;
+    reverts?: boolean;    
 };
 
 export class Instruction {
     opCode: OpCode;
-    isAsync: boolean;
     execute: ExecutorSync | ExecutorAsync;
     useGas: UseGas;
     minStack: number;
     maxStack: number;
     useMemory?: UseMemory;
-    halts?: boolean;
-    jumps?: boolean;
-    writes?: boolean;
+    halts: boolean;
+    jumps: boolean;
+    writes: boolean;
+    returns: boolean;
+    reverts: boolean;
 
     constructor(data: InstructionData) {
         this.opCode = data.opCode;
-        this.isAsync = data.isAsync;
         this.execute = data.execute;
         this.useGas = data.useGas;
         this.useMemory = data.useMemory;
         this.halts = Boolean(data.halts);
         this.jumps = Boolean(data.jumps);
         this.writes = Boolean(data.writes);
+        this.returns = Boolean(data.returns);
+        this.reverts = Boolean(data.reverts);
 
         this.minStack = data.stackRange.min;
         this.maxStack = data.stackRange.max;
     }
 
     verifyState(state: State) {
-        if (state.readOnly) {
+        if (state.vm.state.readOnly) {
             if (this.writes) {
                 throw new VmError(ERROR.WRITE_PROTECTION);
             }
-            if (this.opCode === OpCode.CALL && state.stack.back(0) !== 0n) {
+            if (this.opCode === OpCode.CALL && state.stack.back(2) !== 0n) {
                 throw new VmError(ERROR.WRITE_PROTECTION);
             }
         }
@@ -78,21 +81,5 @@ export class Instruction {
         if (state.stack.length > this.maxStack) {
             throw new VmError(ERROR.STACK_OVERFLOW);
         }
-    }
-}
-
-export type InstructionSyncData = Omit<InstructionData, 'isAsync'>;
-
-export class InstructionSync extends Instruction {
-    constructor(syncData: InstructionSyncData) {
-        super({ ...syncData, isAsync: false });
-    }
-}
-
-export type InstructionAsyncData = Omit<InstructionData, 'isAsync'>;
-
-export class InstructionAsync extends Instruction {
-    constructor(asyncData: InstructionAsyncData) {
-        super({ ...asyncData, isAsync: true });
     }
 }

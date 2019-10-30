@@ -25,7 +25,7 @@ import {
 } from 'src/interpreter/executors';
 import { State } from 'src/interpreter/State';
 import { Stack } from 'src/interpreter/Stack';
-import { isBigIntEqual } from 'test/helpers';
+import { isBigIntEqual } from 'test/utils';
 
 const twoOpMethods = new Map<string, ExecutorSync>([
     ['add', opAdd],
@@ -52,7 +52,7 @@ const twoOpMethods = new Map<string, ExecutorSync>([
 ]);
 
 const testOpFn = (stack: Array<string>, opFn: ExecutorSync, expected: string) => {
-    const state = { stack: new Stack(1024) } as State;
+    const state = { stack: new Stack() } as State;
     stack.forEach(item => state.stack.push(BigInt(`0x${item}`)));
     opFn(state);
     isBigIntEqual(state.stack.pop(), BigInt(`0x${expected}`));

@@ -30,20 +30,23 @@ export type VMCreateResult = {
 
 export class VM extends EventEmitter {
 
-    private depth: number;
-
     readonly context: IContext;
 
     readonly storage: IStorage;
 
     readonly config: Config;
 
+    readonly state: {
+        depth: number;
+        readOnly: boolean;
+    };
+
     constructor(context: IContext, storage: IStorage, config: Config) {
         super();
         this.context = context;
         this.storage = storage;
         this.config = this.prepareСonfig(config);
-        this.depth = 0;
+        this.state = { depth: 0, readOnly: undefined };
     }
 
     private prepareСonfig(config: Config): Config {
@@ -52,10 +55,6 @@ export class VM extends EventEmitter {
             params: { ...PARAMS, ...config.params },
             precompiles: { ...PRECOMPILES, ...config.precompiles }
         };
-    }
-
-    addDepth() {
-        this.depth ++;
     }
 
     accountRef(address: Buffer): ContractRef {
@@ -93,8 +92,9 @@ export class VM extends EventEmitter {
 
         try {
             returnData = precompiled(this, contract, input);
-        } catch (precompiledError) {
+        } catch (precompiledError) {            
             error = precompiledError;
+            this.emit('vmerror', error);
         }
 
         return {
@@ -103,9 +103,8 @@ export class VM extends EventEmitter {
         };
     }
 
-    // TODO
     async call(caller: ContractRef, address: Buffer, input: Buffer, gas: bigint, value: bigint): Promise<VMCallResult> {
-        if (this.depth > this.config.params.CallCreateDepth) {
+        if (this.state.depth > this.config.params.CallCreateDepth) {
             return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
         }
 
@@ -144,9 +143,8 @@ export class VM extends EventEmitter {
         };
     }
 
-    // TODO
     async callCode(caller: ContractRef, address: Buffer, input: Buffer, gas: bigint, value: bigint): Promise<VMCallResult> {
-        if (this.depth > this.config.params.CallCreateDepth) {
+        if (this.state.depth > this.config.params.CallCreateDepth) {
             return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
         }
 
@@ -176,16 +174,15 @@ export class VM extends EventEmitter {
         };
     }
 
-    // TODO
     async delegateCall(caller: ContractRef, address: Buffer, input: Buffer, gas: bigint): Promise<VMCallResult> {
-        if (this.depth > this.config.params.CallCreateDepth) {
+        if (this.state.depth > this.config.params.CallCreateDepth) {
             return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
         }
 
         const to = this.accountRef(caller.address);
         const snapshot = this.storage.snapshot();
 
-        const contract = new Contract(caller, to, null, gas).asDelegate();
+        const contract = new Contract(caller, to, 0n, gas).asDelegate();
         contract.setCallCode(address, this.storage.getCode(address));
 
         const { returnData, error } = await this.run(contract, input);
@@ -205,17 +202,16 @@ export class VM extends EventEmitter {
     }
 
     async staticCall(caller: ContractRef, address: Buffer, input: Buffer, gas: bigint): Promise<VMCallResult> {
-        if (this.depth > this.config.params.CallCreateDepth) {
+        if (this.state.depth > this.config.params.CallCreateDepth) {
             return { returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
         }
 
-        const to = this.accountRef(caller.address);
+        const to = this.accountRef(address);
         const snapshot = this.storage.snapshot();
 
-        const contract = new Contract(caller, to, null, gas).asDelegate();
+        const contract = new Contract(caller, to, 0n, gas);
         contract.setCallCode(address, this.storage.getCode(address));
 
-        // TODO
         this.storage.addBalance(address, 0n);
 
         const { returnData, error } = await this.run(contract, input, true);
@@ -235,7 +231,7 @@ export class VM extends EventEmitter {
     }
 
     private async createContract(caller: ContractRef, code: Buffer, gas: bigint, value: bigint, address: Buffer): Promise<VMCreateResult> {
-        if (this.depth > this.config.params.CallCreateDepth) {
+        if (this.state.depth > this.config.params.CallCreateDepth) {
             return { contractAddress: null, returnData: Buffer.alloc(0), leftOverGas: gas, error: new VmError(ERROR.DEPTH) };
         }
 
@@ -256,12 +252,13 @@ export class VM extends EventEmitter {
 
         this.storage.createAccount(address);
         this.storage.setNonce(address, 1n);
+
         this.context.transfer(this.storage, caller.address, address, value);
 
         const contract = new Contract(caller, this.accountRef(address), value, gas);
         contract.setCallCode(address, code);
 
-        let { returnData, error: createError } = await this.run(contract, null);
+        let { returnData, error: createError } = await this.run(contract, Buffer.alloc(0));
 
         try {
 

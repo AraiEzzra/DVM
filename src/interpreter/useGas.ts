@@ -2,6 +2,7 @@ import { toBufferBE } from 'bigint-buffer';
 import { U256 } from 'src/interpreter/U256';
 import { opCodeToHex } from 'src/interpreter/OpCode';
 import { State } from 'src/interpreter/State';
+import { byteCount } from 'src/interpreter/utils';
 
 export const useGasZero = (state: State) => {};
 
@@ -19,8 +20,8 @@ export const useGasExt = (state: State) => state.contract.useGas(state.params.Ex
 
 export const useGasExp = (state: State) => {
     const exponent = state.stack.back(1);
-    const byteCount = U256.byteCount(exponent);
-    const gas = BigInt(byteCount) * state.params.ExpByteGas + state.params.ExpGas;
+    const count = byteCount(exponent);
+    const gas = BigInt(count) * state.params.ExpByteGas + state.params.ExpGas;
 
     state.contract.useGas(gas);
 };
@@ -79,7 +80,7 @@ const gasSStore = (oldValue: Buffer, newValue: Buffer, state: State): bigint => 
         return state.params.SstoreClearGas;
     }        
     return state.params.SstoreResetGas;
-}
+};
 
 export const useGasMload = (state: State) => {
     const offset = state.stack.back(0);
@@ -156,7 +157,7 @@ export const useGasLog = (state: State) => {
 
 export const useGasExtCodeCopy = (state: State) => {
     const offset = state.stack.back(1);
-    const length = state.stack.back(2);
+    const length = state.stack.back(3);
 
     let gas = state.params.ExtcodeCopyBase;
 
@@ -182,7 +183,7 @@ export const useGasCall = (state: State) => {
 
     if (value !== 0n) {
         gas += state.params.CallValueTransferGas;
-        if (!state.vm.storage.exist(address)) {
+        if (state.vm.storage.empty(address)) {
             gas += state.params.CallNewAccountGas;
         }
     }

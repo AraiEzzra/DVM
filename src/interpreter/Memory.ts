@@ -1,5 +1,5 @@
 import { ERROR, VmError } from 'src/exceptions';
-import { bufferPadEnd } from 'src/interpreter/utils';
+import { bufferPadEnd, getDataSlice } from 'src/interpreter/utils';
 
 export class Memory {
 
@@ -27,12 +27,18 @@ export class Memory {
         }
     }
 
+    setSlice(offset: number, size: number, value: Buffer) {
+        size = Math.min(value.length, size);
+        value = getDataSlice(value, 0, size);
+        this.set(offset, size, value);
+    }
+
     get(offset: number, size: number): Buffer {
         if (size === 0) {
             return Buffer.alloc(0);
         }
         const buffer = this.store.slice(offset, offset + size);
-        return bufferPadEnd(buffer, size);
+        return bufferPadEnd(Buffer.from(buffer), size);
     }
 
     resize(size: number) {

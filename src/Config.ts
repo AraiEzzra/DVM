@@ -1,5 +1,10 @@
 import { IPrecompiledContract } from 'src/Contract';
 import { ecrecover } from 'src/precompiles/ecrecover';
+import { sha256hash } from 'src/precompiles/sha256hash';
+import { ripemd160hash } from 'src/precompiles/ripemd160hash';
+import { identity } from 'src/precompiles/identity';
+import { bigModExp } from 'src/precompiles/bigModExp';
+import { notSupported } from 'src/precompiles/notSupported';
 
 export type Config = {
     debug: boolean;
@@ -48,9 +53,10 @@ export const PARAMS = {
     CallCreateDepth: 1024, // Maximum depth of call/create stack.
     
     TxGas: 21000n, // Per transaction not creating a contract.
-                           // NOTE: Not payable on data of calls between transactions.
+                   // NOTE: Not payable on data of calls between transactions.
     
-    TxGasContractCreation: 53000n, // Per transaction that creates a contract. NOTE: Not payable on data of calls between transactions.
+    TxGasContractCreation: 53000n, // Per transaction that creates a contract.
+                                   // NOTE: Not payable on data of calls between transactions.
     
     TxDataZeroGas: 4n, // Per byte of data attached to a transaction that equals zero.
                                // NOTE: Not payable on data of calls between transactions.
@@ -82,9 +88,24 @@ export const PARAMS = {
     
     SelfdestructRefundGas: 24000n, // Refunded following a selfdestruct operation.
 
-    ExtcodeHashGas: 400n  // Cost of EXTCODEHASH
+    // Precompiled contract gas prices
+    ExtcodeHashGas: 400n,  // Cost of EXTCODEHASH
+    Sha256BaseGas: 60n,   // Base price for a SHA256 operation
+    Sha256PerWordGas: 12n,   // Per-word price for a SHA256 operation
+    Ripemd160BaseGas: 600n,  // Base price for a RIPEMD160 operation
+    Ripemd160PerWordGas: 120n,  // Per-word price for a RIPEMD160 operation
+    IdentityBaseGas: 15n,   // Base price for a data copy operation
+    IdentityPerWordGas: 3n, // Per-work price for a data copy operation
+    ModExpQuadCoeffDiv: 20n // Divisor for the quadratic particle of the big int modular exponentiation
 };
 
 export const PRECOMPILES = {
-    0x01: ecrecover
+    0x01: ecrecover,
+    0x02: sha256hash,
+    0x03: ripemd160hash,
+    0x04: identity,
+    0x05: bigModExp,
+    0x06: notSupported(0x06n),
+    0x07: notSupported(0x07n),
+    0x08: notSupported(0x08n)
 };

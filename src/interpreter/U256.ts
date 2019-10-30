@@ -1,8 +1,7 @@
+
 export class U256 {
 
-    static readonly MAX_VALUE: bigint = 2n ** 256n - 1n;
-
-    static readonly BYTE: bigint = BigInt(0xff);
+    static readonly BYTE: bigint = 0xffn;
 
     static asUint(value: bigint): bigint {
         return BigInt.asUintN(256, value);
@@ -16,16 +15,11 @@ export class U256 {
         if (exp === 0n) {
             return 1n;
         }
-        if (base === 0n) {
-            return 0n;
-        }
-        if (exp === 1n) {
-            return base;
-        }
+        const z = U256.expmod(base, exp / 2n);
         if (exp % 2n === 0n) {
-            return BigInt.asUintN(256, U256.expmod( base, (exp / 2n)) ** 2n);
+            return BigInt.asUintN(256, z * z);
         }
-        return BigInt.asUintN(256, base * U256.expmod( base, (exp - 1n)));
+        return BigInt.asUintN(256, base * z * z);
     }
 
     static bit(value: bigint, bit: bigint): bigint {
@@ -35,28 +29,13 @@ export class U256 {
             : 0n;
     }
 
-    static bitCount(value: bigint): number {
-        // TODO
-        return value === 0n
-            ? 0
-            : value.toString(2).length;
-    }
-
-    static byteCount(value: bigint): number {
-        return Math.ceil(U256.bitCount(value) / 8);
-    }
-
-    // TODO
     static divCeil = (value: bigint): bigint => {
         const div = value / 32n;
         const mod = value % 32n;
     
-        // Fast case - exact division
         if (mod === 0n) {
             return div;
         }
-    
-        // Round up
         return div < 0n ? div - 1n : div + 1n;
     }
 }

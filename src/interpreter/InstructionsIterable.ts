@@ -2,22 +2,19 @@ import { Instruction } from 'src/interpreter/Instruction';
 import { getInstruction } from 'src/interpreter/Instructions';
 import { State } from 'src/interpreter/State';
 
-export class InstructionsIterable {
+export class InstructionsIterable implements IterableIterator<Instruction> {
 
     private readonly state: State;
 
     private readonly length: number;
 
-    private done: boolean;
-
     constructor(state: State) {
         this.state = state;
         this.length = this.state.contract.code.length;
-        this.done = false;
     }
 
-    next() {
-        if (this.state.programCounter < this.length && !this.done) {
+    next(): IteratorResult<Instruction> {
+        if (this.state.programCounter < this.length) {
             const opCode = this.state.contract.code[this.state.programCounter];
             const instruction = getInstruction(opCode);
 
@@ -25,10 +22,6 @@ export class InstructionsIterable {
 
             if (!instruction.jumps) {
                 this.state.programCounter++;
-            }
-
-            if (instruction.halts) {
-                this.done = true;
             }
 
             return {
@@ -43,9 +36,7 @@ export class InstructionsIterable {
         };
     }
 
-    [Symbol.iterator](): Iterator<Instruction> {
-        return {
-            next: () => this.next()
-        };
+    [Symbol.iterator](): IterableIterator<Instruction> {
+        return this;
     }  
 }

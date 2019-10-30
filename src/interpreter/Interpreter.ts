@@ -2,8 +2,7 @@ import { State } from 'src/interpreter/State';
 import { VM } from 'src/VM';
 import { Contract } from 'src/Contract';
 import { InstructionsIterable } from 'src/interpreter/InstructionsIterable';
-import { opCodeToString, OpCode } from 'src/interpreter/OpCode';
-import { VmError, ERROR } from '../exceptions';
+import { ExecutionRevertedError } from 'src/exceptions';
 
 export type InterpreterResult = {
     returnData: Buffer;
@@ -16,48 +15,87 @@ export class Interpreter {
 
     readonly contract: Contract;
 
+    private prevReadOnly: boolean;
+
+    private readOnly: boolean;
+
     constructor(vm: VM, contract: Contract) {
         this.vm = vm;
         this.contract = contract;
     }
 
     async run(input: Buffer, readOnly: boolean): Promise<InterpreterResult> {
-        let error: Error;
         const state = new State(this);
-        const instructions = new InstructionsIterable(state);
+        let result: InterpreterResult; 
 
         this.contract.input = input;
-        state.readOnly = readOnly;
+        this.readOnly = readOnly;
 
-        this.vm.addDepth();
+        this.beforeRunState();
 
         try {
-
-            for (const instruction of instructions) {
-
-                instruction.verifyState(state);
-
-                this.vm.emit('step', state);
-    
-                instruction.useGas(state);
-    
-                if (instruction.useMemory) {
-                    instruction.useMemory(state);
-                }
-    
-                instruction.isAsync
-                    ? await instruction.execute(state)
-                    : instruction.execute(state);
-            }
-
-        } catch (returnError) {
-            this.vm.emit('vmerror', returnError);
-            error = returnError;
+            result = await this.runState(state);
+        } catch (error) {
+            result = {
+                returnData: Buffer.alloc(0),
+                error
+            };
         }
 
-        return {
-            error,
-            returnData: state.returnData
-        };
+        this.afterRunState();
+
+        if (result.error) {
+            this.vm.emit('vmerror', result.error);
+        }
+
+        return result;
+    }
+
+    private beforeRunState() {
+        this.vm.state.depth ++;
+        if (this.vm.state.readOnly === undefined) {
+            this.vm.state.readOnly = this.readOnly;
+        }
+        this.prevReadOnly = this.vm.state.readOnly;
+        if (!this.prevReadOnly) {
+            this.vm.state.readOnly = this.readOnly;
+        }
+    }
+
+    private afterRunState() {
+        this.vm.state.depth --;
+        this.vm.state.readOnly = this.prevReadOnly;
+    }
+
+    private async runState(state: State): Promise<InterpreterResult> {
+        const instructions = new InstructionsIterable(state);
+
+        for (const instruction of instructions) {
+
+            instruction.verifyState(state);
+
+            this.vm.emit('step', state);
+
+            instruction.useGas(state);
+
+            if (instruction.useMemory) {
+                instruction.useMemory(state);
+            }
+
+            const returnData = await instruction.execute(state);
+
+            if (instruction.returns) {
+                state.returnData = returnData;
+            }
+
+            if (instruction.reverts) {
+                return { returnData, error: new ExecutionRevertedError() };
+            }
+            if (instruction.halts) {
+                return { returnData };
+            }
+        }
+
+        return { returnData: Buffer.alloc(0) };
     }
 }

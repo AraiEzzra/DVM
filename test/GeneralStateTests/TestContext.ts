@@ -2,7 +2,7 @@ import { IContext } from 'src/IContext';
 import { IStorage } from 'src/IStorage';
 import { Message } from 'src/Message';
 import { TestJSON } from 'test/GeneralStateTests/TestsJSON';
-import { hexToBuffer, hexToBigInt } from 'test/helpers';
+import { hexToBuffer, hexToBigInt } from 'test/utils';
 
 export class TestContext implements IContext {
     blockNumber: bigint;

@@ -1,7 +1,7 @@
 import { IStorage } from 'src/IStorage';
-import { hexToBuffer } from 'test/helpers';
+import { hexToBuffer } from 'test/utils';
 import { AccountJSON } from 'test/GeneralStateTests/TestsJSON';
-import { MerklePatriciaTree } from 'test/vm/MerklePatriciaTree';
+import { MerklePatriciaTree } from 'test/utils/MerklePatriciaTree';
 import * as rlp from 'rlp';
 import { keccak256 } from 'src/interpreter/hash';
 import { bigIntToBuffer } from 'src/interpreter/utils';
@@ -16,21 +16,36 @@ export type Account = {
     storage: Map<string, Buffer>;
 };
 
+type Data = Map<string, Account>;
+
+type Touched = Set<string>;
+
+type Snapshot = {
+    data: Data,
+    touched: Touched,
+    refund: bigint;
+    logs: Array<Log>;
+};
+
 export class TestStorage implements IStorage {
 
-    private data: Map<string, Account>;
+    private data: Data;
 
-    private touched: Set<string>;
+    private touched: Touched;
 
     private logList: Array<Log>;
 
     private refund: bigint;
+
+    private snapshots: Array<Snapshot>;
 
     constructor(data: {[address: string]: AccountJSON} = {}) {
         this.data = new Map();
         this.touched = new Set();
         this.logList = [];
         this.refund = 0n;
+
+        this.snapshots = [];
 
         Object.entries(data).forEach(([key, value]) => this.putAccount(key, value));
     }
@@ -62,19 +77,38 @@ export class TestStorage implements IStorage {
         return this.data.get(key);
     }
 
-    snapshot() {
-        return new Map([...this.data.entries()].map(([key, item]) => {
+    snapshot(): number {
+        const data = new Map([...this.data.entries()].map(([key, item]) => {
             const cloneItem = { ...item, storage: new Map(item.storage) };
             return [key, cloneItem];
         }));
+
+        const touched = new Set(this.touched);
+
+        const logs = this.logList.slice();
+
+        this.snapshots.push({
+            data,
+            touched,
+            refund: this.refund,
+            logs 
+        });
+
+        return this.snapshots.length - 1;
     }
         
-    revertToSnapshot(value: any) {
-        this.data = value;
+    revertToSnapshot(value: number) {
+        const { data, touched, refund, logs } = this.snapshots[value];
+
+        this.data = data;
+        this.touched = touched;
+        this.refund = refund;
+        this.logList = logs;
     }
 
     createAccount(address: Buffer) {
         const key = address.toString('hex');
+        const prev = this.getAccount(address);
         
         this.putAccount(key, {
             code: '',
@@ -82,6 +116,10 @@ export class TestStorage implements IStorage {
             nonce: '',
             storage: {}
         });
+
+        if (prev) {
+            this.addBalance(address, prev.balance);
+        }
     }
 
     setCode(address: Buffer, code: Buffer) {
@@ -98,8 +136,7 @@ export class TestStorage implements IStorage {
         if (account) {
             return account.nonce === 0n
                 && account.balance === 0n
-                && account.code.length === 0
-                && account.storage.size === 0;
+                && account.code.length === 0;
         }
         return true;
     }
@@ -107,6 +144,7 @@ export class TestStorage implements IStorage {
     suicide(address: Buffer) {
         const account = this.getAccount(address);
         if (account) {
+            account.balance = 0n;
             account.suicided = true;
         }
     }
@@ -186,10 +224,6 @@ export class TestStorage implements IStorage {
         return Buffer.alloc(0);
     }
 
-    get size(): number {
-        return 0;
-    }
-
     getValue(address: Buffer, key: Buffer): Buffer {
         const account = this.getAccount(address);
         const hex = key.toString('hex');
@@ -210,10 +244,21 @@ export class TestStorage implements IStorage {
         }
     }
 
+    private isTouched(address: Buffer): boolean {
+        return this.touched.has(address.toString('hex'));
+    }
+
     getData(): Array<Account> {
         return [...this.data.values()]
-            .filter(item => !(this.empty(item.address) || this.hasSuicided(item.address)));
-            // .filter(item => this.touched.has(item.address.toString('hex')) && !(this.empty(item.address) || this.hasSuicided(item.address)));
+            .filter(item => {
+                if (this.hasSuicided(item.address)) {
+                    return false;
+                }
+                if (this.empty(item.address) && this.isTouched(item.address)) {
+                    return false;
+                }
+                return true;
+            });
     } 
 
     async toMerklePatriciaTree(): Promise<MerklePatriciaTree> {
@@ -281,22 +326,31 @@ export class TestStorage implements IStorage {
                 nonce: account.nonce
               };
 
-              foo[address]['storage'] = account.storage;
+              foo[address]['storage' as any] = account.storage;
         }
 
-        const accounts: Array<any> =  Object.values(foo).sort((x: any, y: any) => x.address.localeCompare(y.address))
+        const accounts: Array<any> =  Object.values(foo).sort((x: any, y: any) => x.address.localeCompare(y.address));
         for (let account of accounts) {
-          console.log('--------------------------------------');
-          console.log('address', account.address);
-          console.log('balance', account.balance);
-          console.log('nonce', account.nonce);
-          [...account.storage.entries()]
-              .map(([key, value]) => ({key, value}))
-              .sort((x, y) => x.key.localeCompare(y.key))
-              .forEach(item => {
-                console.log(`${item.key}: ${item.value.toString('hex')}`);
-              })
+            console.log('--------------------------------------');
+            console.log('address', account.address);
+            console.log('balance', account.balance);
+            console.log('nonce', account.nonce);
+            [...account.storage.entries()]
+                .map(([key, value]) => ({key, value}))
+                .sort((x, y) => x.key.localeCompare(y.key))
+                .forEach(item => {
+                    console.log(`${item.key}: ${item.value.toString('hex')}`);
+                });
         }
-  
+    }
+
+    printLogs() {
+        for (const log of this.logs()) {
+            console.log('address', log.address.toString('hex'));
+            for (const topic of log.topics) {
+                console.log('topic', topic.toString('hex'));
+            }
+            console.log('data', log.data.toString('hex'));
+        }
     }
 }

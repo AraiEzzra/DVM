@@ -1,11 +1,8 @@
 export class Stack {
 
-    private readonly stackLimit: number;
-
     private readonly data: Array<bigint>;
 
-    constructor(stackLimit: number) {
-        this.stackLimit = stackLimit;
+    constructor() {
         this.data = [];
     }
 
@@ -40,11 +37,6 @@ export class Stack {
     }
 
     toString(): string {
-        return this.data.map((value, index) => {
-            const indexS = index.toString().padStart(4, '0');
-            const valueS = value.toString(16).padStart(64, '0');
-
-            return `${indexS}: ${valueS}`;
-        }).join('\n');
+        return this.data.join();
     }
 }

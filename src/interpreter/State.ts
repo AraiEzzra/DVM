@@ -22,14 +22,13 @@ export class State {
     memoryWordCount: bigint;
     returnData: Buffer;
     callGasTemp: bigint;
-    readOnly: boolean;
 
     constructor(interpreter: Interpreter) {
         this.interpreter = interpreter;
         this.contract = interpreter.contract;
         this.vm = interpreter.vm;
         this.params = interpreter.vm.config.params;
-        this.stack = new Stack(this.params.StackLimit);
+        this.stack = new Stack();
         
         this.memory = new Memory();
         this.programCounter = 0;
@@ -39,7 +38,6 @@ export class State {
         this.memoryWordCount = 0n;
         this.returnData = Buffer.alloc(0);
         this.callGasTemp = 0n;
-        this.readOnly = true;
     }
 
     isJumpValid(dest: number): boolean {
