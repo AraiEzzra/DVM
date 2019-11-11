@@ -1,13 +1,13 @@
 import { TestFile, TestJSON } from 'test/VMTests/TestsJSON';
-import { TestMatcher, TestMatcherFile } from 'test/utils/TestMatcher';
+import { TestMatcher, Path } from 'test/runner/TestMatcher';
 
-export const testMatcher = new TestMatcher<TestJSON>('VMTests');
+export const testMatcher = new TestMatcher<TestFile, TestJSON>('VMTests');
 
-testMatcher.process(function* (file: TestMatcherFile<TestFile>) {
-    for (const test of Object.values(file.test)) {
+testMatcher.process(function* (file: Path<TestFile>) {
+    for (const data of Object.values(file.data)) {
         yield {
             path: file.path,
-            test
+            data
         };
     }
 });

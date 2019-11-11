@@ -5,7 +5,11 @@
   "main": "index.js",
   "scripts": {
     "lint": "npx tslint --project .",
-    "test": "npx mocha"
+    "test-runner": "npx ts-node -r tsconfig-paths/register test/runner",
+    "test:unit": "npx mocha",
+    "test:vm": "npm run test-runner -- --module=VMTests",
+    "test:state": "npm run test-runner -- --module=GeneralStateTests",
+    "test": "npm run test:unit && npm run test:vm && npm run test:state"
   },
   "keywords": [],
   "author": "user-dob <user.dob@gmail.com>",
