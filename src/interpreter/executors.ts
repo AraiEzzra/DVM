@@ -1,42 +1,50 @@
 import { toBigIntBE, toBufferBE } from 'bigint-buffer';
 import { dupPosition, pushBytes, swapPosition, logBytes } from 'src/interpreter/OpCode';
 import { State } from 'src/interpreter/State';
-import { VmError, ERROR, ExecutionRevertedError, isExecutionReverted } from 'src/exceptions';
+import { VmError, ERROR, isExecutionReverted } from 'src/exceptions';
 import { U256 } from 'src/interpreter/U256';
 import { keccak256 } from 'src/interpreter/hash';
 import { getDataSlice, bigIntToBuffer } from 'src/interpreter/utils';
 
-export const opInvalid = (state: State) => {
+export const opInvalid = (state: State): Buffer => {
     throw new VmError(ERROR.INVALID_OPCODE(state.opCode));
 };
 
-export const opStop = (state: State) => {};
+export const opStop = (state: State): Buffer => {
+    return Buffer.alloc(0);
+};
 
-export const opAdd = (state: State) => {
+export const opAdd = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
     
     const result = U256.asUint(a + b);
     state.stack.push(result);
+
+    return null;
 };
 
-export const opMul = (state: State) => {
+export const opMul = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
 
     const result = U256.asUint(a * b);
     state.stack.push(result);
+
+    return null;
 };
 
-export const opSub = (state: State) => {
+export const opSub = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
 
     const result = U256.asUint(a - b);
     state.stack.push(result);
+
+    return null;
 };
 
-export const opDiv = (state: State) => {
+export const opDiv = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
 
@@ -44,9 +52,11 @@ export const opDiv = (state: State) => {
         ? 0n
         : U256.asUint(a / b);
     state.stack.push(result);
+
+    return null;
 };
 
-export const opSdiv = (state: State) => {
+export const opSdiv = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
 
@@ -54,9 +64,11 @@ export const opSdiv = (state: State) => {
         ? 0n
         : U256.asUint(U256.asInt(a) / U256.asInt(b));
     state.stack.push(result);
+
+    return null;
 };
 
-export const opMod = (state: State) => {
+export const opMod = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
 
@@ -64,9 +76,11 @@ export const opMod = (state: State) => {
         ? 0n
         : U256.asUint(a % b);
     state.stack.push(result);
+
+    return null;
 };
 
-export const opSmod = (state: State) => {
+export const opSmod = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
 
@@ -74,9 +88,11 @@ export const opSmod = (state: State) => {
         ? 0n
         : U256.asUint(U256.asInt(a) % U256.asInt(b));
     state.stack.push(result);
+
+    return null;
 };
 
-export const opAddmod = (state: State) => {
+export const opAddmod = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
     const c = state.stack.pop();
@@ -86,9 +102,11 @@ export const opAddmod = (state: State) => {
         : U256.asUint((a + b) % c);
 
     state.stack.push(result);
+
+    return null;
 };
 
-export const opMulmod = (state: State) => {
+export const opMulmod = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
     const c = state.stack.pop();
@@ -98,17 +116,21 @@ export const opMulmod = (state: State) => {
         : U256.asUint((a * b) % c);
 
     state.stack.push(result);
+
+    return null;
 };
 
-export const opExp = (state: State) => {
+export const opExp = (state: State): Buffer => {
     const base = state.stack.pop();
     const exponent = state.stack.pop();
 
     const result = U256.expmod(base, exponent);
     state.stack.push(result);
+
+    return null;
 };
 
-export const opSignExtend = (state: State) => {
+export const opSignExtend = (state: State): Buffer => {
     const k = state.stack.pop();
     const value = state.stack.pop();
 
@@ -125,85 +147,107 @@ export const opSignExtend = (state: State) => {
     }
 
     state.stack.push(value);
+
+    return null;
 };
 
-export const opLt = (state: State) => {
+export const opLt = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
 
     const result = a < b ? 1n : 0n;
     state.stack.push(result);
+
+    return null;
 };
 
-export const opGt = (state: State) => {
+export const opGt = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
 
     const result = a > b ? 1n : 0n;
     state.stack.push(result);
+
+    return null;
 };
 
-export const opSlt = (state: State) => {
+export const opSlt = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
     
     const result = U256.asInt(a) < U256.asInt(b) ? 1n : 0n;
     state.stack.push(result);
+
+    return null;
 };
 
-export const opSgt = (state: State) => {
+export const opSgt = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
 
     const result = U256.asInt(a) > U256.asInt(b) ? 1n : 0n;
     state.stack.push(result);
+
+    return null;
 };
 
-export const opEq = (state: State) => {
+export const opEq = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
 
     const result = a === b ? 1n : 0n;
     state.stack.push(result);
+
+    return null;
 };
 
-export const opIszero = (state: State) => {
+export const opIszero = (state: State): Buffer => {
     const a = state.stack.pop();
     const result = a === 0n ? 1n : 0n;
     state.stack.push(result);
+
+    return null;
 };
 
-export const opAnd = (state: State) => {
+export const opAnd = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
     
     const result = a & b;
     state.stack.push(result);
+
+    return null;
 };
 
-export const opOr = (state: State) => {
+export const opOr = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
     
     const result = a | b;
     state.stack.push(result);
+
+    return null;
 };
 
-export const opXor = (state: State) => {
+export const opXor = (state: State): Buffer => {
     const a = state.stack.pop();
     const b = state.stack.pop();
     
     const result = a ^ b;
     state.stack.push(result);
+
+    return null;
 };
 
-export const opNot = (state: State) => {
+export const opNot = (state: State): Buffer => {
     const a = state.stack.pop();
     const result = U256.asUint(~a);
     state.stack.push(result);
+
+    return null;
 };
 
-export const opByte = (state: State) => {
+export const opByte = (state: State): Buffer => {
     const pos = state.stack.pop();
     const word = state.stack.pop();
 
@@ -212,9 +256,11 @@ export const opByte = (state: State) => {
         : 0n;
 
     state.stack.push(result);
+
+    return null;
 };
 
-export const opSHL = (state: State) => {
+export const opSHL = (state: State): Buffer => {
     const shift = state.stack.pop();
     const value = state.stack.pop();
 
@@ -223,9 +269,11 @@ export const opSHL = (state: State) => {
         : 0n;
 
     state.stack.push(result);
+
+    return null;
 };
 
-export const opSHR = (state: State) => {
+export const opSHR = (state: State): Buffer => {
     const shift = state.stack.pop();
     const value = state.stack.pop();
 
@@ -234,9 +282,11 @@ export const opSHR = (state: State) => {
         : 0n;
 
     state.stack.push(result);
+
+    return null;
 };
 
-export const opSAR = (state: State) => {
+export const opSAR = (state: State): Buffer => {
     const shift = state.stack.pop();
     const value = state.stack.pop();
 
@@ -248,9 +298,11 @@ export const opSAR = (state: State) => {
         const result = U256.asUint(isSigned ? 0n : -1n);
         state.stack.push(result);
     }
+
+    return null;
 };
 
-export const opSha3 = (state: State) => {
+export const opSha3 = (state: State): Buffer => {
     const offset = Number(state.stack.pop());
     const length = Number(state.stack.pop());
 
@@ -258,9 +310,11 @@ export const opSha3 = (state: State) => {
     const result = toBigIntBE(keccak256(data));
 
     state.stack.push(result);
+
+    return null;
 };
 
-export const opPush = (state: State) => {
+export const opPush = (state: State): Buffer => {
     const numToPush = pushBytes(state.opCode);
 
     const value = state.contract.code
@@ -268,26 +322,34 @@ export const opPush = (state: State) => {
 
     state.programCounter += numToPush;
     state.stack.push(toBigIntBE(value));
+
+    return null;
 };
 
-export const opDup = (state: State) => {
+export const opDup = (state: State): Buffer => {
     const stackPos = dupPosition(state.opCode);
     state.stack.dup(stackPos);
+
+    return null;
 };
 
-export const opSwap = (state: State) => {
+export const opSwap = (state: State): Buffer => {
     const stackPos = swapPosition(state.opCode);
     state.stack.swap(stackPos);
+
+    return null;
 };
 
-export const opSload = (state: State) => {
+export const opSload = (state: State): Buffer => {
     const key = toBufferBE(state.stack.pop(), 32);
     const value = state.vm.storage.getValue(state.contract.address, key);
 
     state.stack.push(toBigIntBE(value));
+
+    return null;
 };
 
-export const opSstore = (state: State) => {
+export const opSstore = (state: State): Buffer => {
     const key = toBufferBE(state.stack.pop(), 32);
     const value = bigIntToBuffer(state.stack.pop());
 
@@ -298,11 +360,15 @@ export const opSstore = (state: State) => {
     ]);
 
     state.vm.storage.setValue(state.contract.address, key, value);
+
+    return null;
 };
 
-export const opJumpdest = (state: State) => {};
+export const opJumpdest = (state: State): Buffer => {
+    return null;
+};
 
-export const opJump = (state: State) => {
+export const opJump = (state: State): Buffer => {
     const dest = Number(state.stack.pop());
 
     if (!state.isJumpValid(dest)) {
@@ -310,9 +376,11 @@ export const opJump = (state: State) => {
     }
 
     state.programCounter = dest;
+
+    return null;
 };
 
-export const opJumpi = (state: State) => {
+export const opJumpi = (state: State): Buffer => {
     const dest = Number(state.stack.pop());
     const cond = Number(state.stack.pop());
    
@@ -323,131 +391,159 @@ export const opJumpi = (state: State) => {
     
         state.programCounter = dest;
     }
+
+    return null;
 };
 
-export const opCallDataLoad = (state: State) => {
+export const opCallDataLoad = (state: State): Buffer => {
     const offset = Number(state.stack.pop());
     const data = getDataSlice(state.contract.input, offset, 32);
 
     state.stack.push(toBigIntBE(data));
+
+    return null;
 };
 
-export const opCallValue = (state: State) => {
+export const opCallValue = (state: State): Buffer => {
     state.stack.push(state.contract.value);
+    return null;
 };
 
-export const opNumber = (state: State) => {
+export const opNumber = (state: State): Buffer => {
     state.stack.push(state.vm.context.blockNumber);
+    return null;
 };
 
-export const opTimestamp = (state: State) => {
+export const opTimestamp = (state: State): Buffer => {
     state.stack.push(state.vm.context.time);
+    return null;
 };
 
-export const opCoinbase = (state: State) => {
+export const opCoinbase = (state: State): Buffer => {
     state.stack.push(toBigIntBE(state.vm.context.coinbase));
+    return null;
 };
 
-export const opDifficulty = (state: State) => {
+export const opDifficulty = (state: State): Buffer => {
     state.stack.push(state.vm.context.difficulty);
+    return null;
 };
 
-export const opGasLimit = (state: State) => {
+export const opGasLimit = (state: State): Buffer => {
     state.stack.push(state.vm.context.gasLimit);
+    return null;
 };
 
-export const opPop = (state: State) => {
+export const opPop = (state: State): Buffer => {
     state.stack.pop();
+    return null;
 };
 
-export const opPc = (state: State) => {
+export const opPc = (state: State): Buffer => {
     state.stack.push(BigInt(state.programCounter - 1));
+    return null;
 };
 
-export const opMload = (state: State) => {
+export const opMload = (state: State): Buffer => {
     const offset = Number(state.stack.pop());
     const value = state.memory.get(offset, 32);
 
     state.stack.push(toBigIntBE(value));
+
+    return null;
 };
 
-export const opMstore = (state: State) => {
+export const opMstore = (state: State): Buffer => {
     const offset = Number(state.stack.pop());
     const value = toBufferBE(state.stack.pop(), 32);
 
     state.memory.set(offset, 32, value);
+
+    return null;
 };
 
-export const opMstore8 = (state: State) => {
+export const opMstore8 = (state: State): Buffer => {
     const offset = Number(state.stack.pop());
     const value = toBufferBE(state.stack.pop() & U256.BYTE, 1);
 
     state.memory.set(offset, 1, value);
+
+    return null;
 };
 
-export const opMsize = (state: State) => {
-    // TODO
+export const opMsize = (state: State): Buffer => {
     state.stack.push(state.memoryWordCount * 32n);
+    return null;
 };
 
-export const opReturn = (state: State) => {
+export const opReturn = (state: State): Buffer => {
     const offset = Number(state.stack.pop());
     const length = Number(state.stack.pop());
 
-    const value = state.memory.get(offset, length);
-    state.returnData = value;
+    const data = state.memory.get(offset, length);
+
+    return data;
 };
 
-export const opGas = (state: State) => {
+export const opGas = (state: State): Buffer => {
     state.stack.push(state.contract.gas);
+    return null;
 };
 
-export const opCaller = (state: State) => {
+export const opCaller = (state: State): Buffer => {
     state.stack.push(toBigIntBE(state.contract.callerAddress));
+    return null;
 };
 
-export const opCodeCopy = (state: State) => {
+export const opCodeCopy = (state: State): Buffer => {
     const memOffset = Number(state.stack.pop());
     const codeOffset = Number(state.stack.pop());
     const length = Number(state.stack.pop());
 
     const data = getDataSlice(state.contract.code, codeOffset, length);
     state.memory.set(memOffset, length, data);
+    return null;
 };
 
-export const opAddress = (state: State) => {
+export const opAddress = (state: State): Buffer => {
     state.stack.push(toBigIntBE(state.contract.address));
+    return null;
 };
 
-export const opCallDataCopy = (state: State) => {
+export const opCallDataCopy = (state: State): Buffer => {
     const memOffset = Number(state.stack.pop());
     const codeOffset = Number(state.stack.pop());
     const length = Number(state.stack.pop());
 
     const data = getDataSlice(state.contract.input, codeOffset, length);
     state.memory.set(memOffset, length, data);
+    return null;
 };
 
-export const opCallDataSize = (state: State) => {
+export const opCallDataSize = (state: State): Buffer => {
     const value = BigInt(state.contract.input.length);
     state.stack.push(value);
+    return null;
 };
 
-export const opCodeSize = (state: State) => {
+export const opCodeSize = (state: State): Buffer => {
     const value = BigInt(state.contract.code.length);
     state.stack.push(value);
+    return null;
 };
 
-export const opGasprice = (state: State) => {
+export const opGasprice = (state: State): Buffer => {
     state.stack.push(state.vm.context.gasPrice);
+    return null;
 };
 
-export const opOrigin = (state: State) => {
+export const opOrigin = (state: State): Buffer => {
     state.stack.push(toBigIntBE(state.vm.context.origin));
+    return null;
 };
 
-export const opLog = (state: State) => {
-    const memOffset = Number(state.stack.pop());
+export const opLog = (state: State): Buffer => {
+    const offset = Number(state.stack.pop());
     const length = Number(state.stack.pop());
     const topicsCount = logBytes(state.opCode);
     const topics: Array<Buffer> = [];
@@ -456,31 +552,37 @@ export const opLog = (state: State) => {
         topics.push(toBufferBE(state.stack.pop(), 32));
     }
 
-    const data = state.memory.get(memOffset, length);
+    const data = state.memory.get(offset, length);
 
     state.vm.storage.addLog({
         address: state.contract.address,
         topics,
         data
     });
+
+    return null;
 };
 
-export const opSuicide = (state: State) => {
+export const opSuicide = (state: State): Buffer => {
     const address = state.stack.pop();
     const balance = state.vm.storage.getBalance(state.contract.address);
     state.vm.storage.addBalance(state.vm.config.bigIntToAddress(address), balance);
 
     state.vm.storage.suicide(state.contract.address);
+
+    return Buffer.alloc(0);
 };
 
-export const opBalance = (state: State) => {
+export const opBalance = (state: State): Buffer => {
     const address = state.stack.pop();
     const value = state.vm.storage.getBalance(state.vm.config.bigIntToAddress(address));
 
     state.stack.push(value);
+
+    return null;
 };
 
-export const opCall = async (state: State) => {
+export const opCall = async (state: State): Promise<Buffer> => {
     const gasLimit = Number(state.stack.pop());
     const address = state.vm.config.bigIntToAddress(state.stack.pop());
     const value = state.stack.pop();
@@ -502,15 +604,15 @@ export const opCall = async (state: State) => {
     state.stack.push(error ? 0n : 1n);
 
     if (!error || isExecutionReverted(error)) {
-        const memoryData = getDataSlice(returnData, 0, outLength);
-        state.memory.set(outOffset, outLength, memoryData);
+        state.memory.setSlice(outOffset, outLength, returnData);
     }
 
-    state.returnData = returnData;
     state.contract.gas += leftOverGas;
+
+    return returnData;
 };
 
-export const opCallCode = async (state: State) => {
+export const opCallCode = async (state: State): Promise<Buffer> => {
     const gasLimit = Number(state.stack.pop());
     const address = state.vm.config.bigIntToAddress(state.stack.pop());
     const value = state.stack.pop();
@@ -532,15 +634,15 @@ export const opCallCode = async (state: State) => {
     state.stack.push(error ? 0n : 1n);
 
     if (!error || isExecutionReverted(error)) {
-        const memoryData = getDataSlice(returnData, 0, outLength);
-        state.memory.set(outOffset, outLength, memoryData);
+        state.memory.setSlice(outOffset, outLength, returnData);
     }
 
-    state.returnData = returnData;
     state.contract.gas += leftOverGas;
+
+    return returnData;
 };
 
-export const opDelegateCall = async (state: State) => {
+export const opDelegateCall = async (state: State): Promise<Buffer> => {
     const gasLimit = Number(state.stack.pop());
     const address = state.vm.config.bigIntToAddress(state.stack.pop());
     const inOffset = Number(state.stack.pop());
@@ -557,15 +659,15 @@ export const opDelegateCall = async (state: State) => {
     state.stack.push(error ? 0n : 1n);
 
     if (!error || isExecutionReverted(error)) {
-        const memoryData = getDataSlice(returnData, 0, outLength);
-        state.memory.set(outOffset, outLength, memoryData);
+        state.memory.setSlice(outOffset, outLength, returnData);
     }
 
-    state.returnData = returnData;
     state.contract.gas += leftOverGas;
+
+    return returnData;
 };
 
-export const opStaticCall = async (state: State) => {
+export const opStaticCall = async (state: State): Promise<Buffer> => {
     const gasLimit = Number(state.stack.pop());
     const address = state.vm.config.bigIntToAddress(state.stack.pop());
     const inOffset = Number(state.stack.pop());
@@ -582,21 +684,22 @@ export const opStaticCall = async (state: State) => {
     state.stack.push(error ? 0n : 1n);
 
     if (!error || isExecutionReverted(error)) {
-        const memoryData = getDataSlice(returnData, 0, outLength);
-        state.memory.set(outOffset, outLength, memoryData);
+        state.memory.setSlice(outOffset, outLength, returnData);
     }
 
-    state.returnData = returnData;
     state.contract.gas += leftOverGas;
+
+    return returnData;
 };
 
-export const opExtCodeSize = (state: State) => {
+export const opExtCodeSize = (state: State): Buffer => {
     const address = state.stack.pop();
     const value = state.vm.storage.getCodeSize(state.vm.config.bigIntToAddress(address));
     state.stack.push(value);
+    return null;
 };
 
-export const opExtCodeCopy = (state: State) => {
+export const opExtCodeCopy = (state: State): Buffer => {
     const address = state.vm.config.bigIntToAddress(state.stack.pop());
     const memOffset = Number(state.stack.pop());
     const codeOffset = Number(state.stack.pop());
@@ -606,9 +709,11 @@ export const opExtCodeCopy = (state: State) => {
     const codeCopy = getDataSlice(code, codeOffset, length);
 
     state.memory.set(memOffset, length, codeCopy);
+
+    return null;
 };
 
-export const opReturnDataCopy = (state: State) => {
+export const opReturnDataCopy = (state: State): Buffer => {
     const memOffset = Number(state.stack.pop());
     const returnDataOffset = Number(state.stack.pop());
     const length = Number(state.stack.pop());
@@ -620,14 +725,17 @@ export const opReturnDataCopy = (state: State) => {
     const value = getDataSlice(state.returnData, returnDataOffset, length);
 
     state.memory.set(memOffset, length, value);
+
+    return null;
 };
 
-export const opReturnDataSize = (state: State) => {
+export const opReturnDataSize = (state: State): Buffer => {
     const value = BigInt(state.returnData.length);
     state.stack.push(value);
+    return null;
 };
 
-export const opCreate = async (state: State) => {
+export const opCreate = async (state: State): Promise<Buffer> => {
     const value = state.stack.pop();
     const offset = Number(state.stack.pop());
     const length = Number(state.stack.pop());
@@ -653,11 +761,12 @@ export const opCreate = async (state: State) => {
     state.contract.gas += leftOverGas;
 
     if (isExecutionReverted(error)) {
-        state.returnData = returnData;
+        return returnData;
     }
+    return Buffer.alloc(0);
 };
 
-export const opCreate2 = async (state: State) => {
+export const opCreate2 = async (state: State): Promise<Buffer> => {
     const endowment = state.stack.pop();
     const offset = Number(state.stack.pop());
     const length = Number(state.stack.pop());
@@ -684,20 +793,21 @@ export const opCreate2 = async (state: State) => {
     state.contract.gas += leftOverGas;
 
     if (isExecutionReverted(error)) {
-        state.returnData = returnData;
+        return returnData;
     }
+    return Buffer.alloc(0);
 };
 
-export const opRevert = (state: State) => {
+export const opRevert = (state: State): Buffer => {
     const offset = Number(state.stack.pop());
     const length = Number(state.stack.pop());
 
-    state.returnData = state.memory.get(offset, length);
+    const data = state.memory.get(offset, length);
 
-    throw new ExecutionRevertedError();
+    return data;
 };
 
-export const opExtCodeHash = (state: State) => {
+export const opExtCodeHash = (state: State): Buffer => {
     const address = state.vm.config.bigIntToAddress(state.stack.pop());
 
     if (state.vm.storage.empty(address)) {
@@ -706,16 +816,19 @@ export const opExtCodeHash = (state: State) => {
         const codeHash = state.vm.storage.getCodeHash(address);
         state.stack.push(toBigIntBE(codeHash));
     }
+    return null;
 };
 
-export const opSelfBalance = (state: State) => {
+export const opSelfBalance = (state: State): Buffer => {
     const balance = state.vm.storage.getBalance(state.contract.address);
     state.stack.push(balance);
+    return null;
 };
 
-export const opBlockhash = (state: State) => {
+export const opBlockhash = (state: State): Buffer => {
     const n = Number(state.stack.pop());
     const hash = state.vm.config.getBlockHash(n);
     state.stack.push(toBigIntBE(hash));
+    return null;
 };
 

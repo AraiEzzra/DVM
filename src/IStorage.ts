@@ -18,8 +18,8 @@ export interface IStorage {
     getValue(address: Buffer, key: Buffer): Buffer;
     setValue(address: Buffer, key: Buffer, value: Buffer): void;
 
-    snapshot(): any;
-    revertToSnapshot(value: any): void;
+    snapshot(): number;
+    revertToSnapshot(value: number): void;
 
     // Exist reports whether the given account exists in state.
     // Notably this should also return true for suicided accounts.

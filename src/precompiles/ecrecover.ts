@@ -1,11 +1,11 @@
-import { PARAMS } from 'src/Config';
+
 import { IPrecompiledContract, Contract } from 'src/Contract';
 import { bufferPadEnd } from 'src/interpreter/utils';
+import { VM } from 'src/VM';
 
 // TODO remove this shit
 import BN from 'bn.js';
 import { setLengthLeft, setLengthRight, ecrecover as ethereumEcrecover, publicToAddress } from 'ethereumjs-util';
-import { VM } from 'src/VM';
 
 export const ecrecover: IPrecompiledContract = (vm: VM, contract: Contract, input: Buffer): Buffer => {
 

@@ -15,7 +15,10 @@ export class ERROR {
     static MAX_CODE_SIZE_EXCEEDED = 'vm: max code size exceeded';
     static RETURN_DATA_OUT_OF_BOUNDS = 'vm: return data out of bounds';
     static WRITE_PROTECTION = 'vm: write protection';
-    static EXECUTION_REVERTED = 'vm: write protection';
+    static EXECUTION_REVERTED = 'vm: execution reverted';
+    static NONCE_TOO_HIGH = 'nonce too high';
+    static NONCE_TOO_LOW = 'nonce too low';
+    static NOT_SUPPORTED_PRECOMPILED = (address: Buffer): string => `Precompiled Contract: ${address.toString('hex')} not supported`;
 }
 
 export class VmError extends Error {}

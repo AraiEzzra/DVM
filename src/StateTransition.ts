@@ -3,6 +3,12 @@ import { Message } from 'src/Message';
 import { GasPool } from 'src/GasPool';
 import { VmError, ERROR, TransitionError } from 'src/exceptions';
 
+export type StateTransitionResult = {
+    returnData: Buffer;
+    leftOverGas: bigint;
+    error?: Error;
+};
+
 export class StateTransition {
 
     private vm: VM;
@@ -22,6 +28,18 @@ export class StateTransition {
 
         this.gas = 0n;
         this.initialGas = 0n;
+    }
+
+    checkNonce() {
+        if (this.message.checkNonce) {
+            const nonce = this.vm.storage.getNonce(this.message.from);
+            if (nonce < this.message.nonce) {
+                throw new TransitionError(ERROR.NONCE_TOO_HIGH);
+            }
+            if (nonce > this.message.nonce) {
+                throw new TransitionError(ERROR.NONCE_TOO_LOW);
+            }
+        }
     }
 
     buyGas() {
@@ -54,13 +72,14 @@ export class StateTransition {
 
     useGas(amount: bigint) {
         if (this.gas < amount) {
-            throw new VmError(ERROR.OUT_OF_GAS);
+            throw new TransitionError(ERROR.OUT_OF_GAS);
         }
         this.gas -= amount;
     }
 
     refundGas() {
         let refund = this.gasUsed() / 2n;
+
         if (refund > this.vm.storage.getRefund()) {
             refund = this.vm.storage.getRefund();
         }
@@ -76,12 +95,13 @@ export class StateTransition {
         return this.initialGas - this.gas;
     }
 
-    async run(): Promise<VMCallResult> {
+    async run(): Promise<StateTransitionResult> {
         const { vm, message } = this;
         let result: VMCallResult | VMCreateResult; 
         let error: Error;
 
         try {
+            this.checkNonce();
             this.buyGas();
 
             const sender = vm.accountRef(message.from);

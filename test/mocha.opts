@@ -1,5 +1,5 @@
 -r ts-node/register
 -r tsconfig-paths/register
---require test/helpers.ts
+--timeout 10000
 --inspect
 test/**/*.spec.ts

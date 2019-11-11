@@ -37,15 +37,22 @@ export type PostStateJSON = {
 
 export type TestJSON = {
     env: EnvJSON;
-    post: {
-        [fork: string]: Array<PostStateJSON>
-    };
+    post: PostStateJSON;
     pre: {
         [address: string]: AccountJSON;
     };
     transaction: TransactionJSON;
-}
+};
 
-export type TestsJSON = {
-    [name: string]: TestJSON;
+export type TestFile = {
+    [name: string]: {
+        env: EnvJSON;
+        post: {
+            [fork: string]: Array<PostStateJSON>
+        };
+        pre: {
+            [address: string]: AccountJSON;
+        };
+        transaction: TransactionJSON;
+    };
 };

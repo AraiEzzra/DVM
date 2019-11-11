@@ -31,7 +31,7 @@ export const useMemoryCall = (state: State) => {
 
 export const useMemoryExtCodeCopy = (state: State) => {
     const offset = state.stack.back(1);
-    const length = state.stack.back(2);
+    const length = state.stack.back(3);
 
     state.memory.resize(Number(offset + length));
 };

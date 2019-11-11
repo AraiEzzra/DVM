@@ -40,6 +40,6 @@ export type TestJSON = {
     };
 };
 
-export type TestsJSON = {
+export type TestFile = {
     [name: string]: TestJSON;
 };

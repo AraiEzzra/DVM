@@ -1,12 +1,10 @@
 import { Stack } from 'src/interpreter/Stack';
-import { PARAMS } from 'src/Config';
-import { U256 } from 'src/interpreter/U256';
 import { expect } from 'chai';
 
 describe('Stack', () => {
 
     it('should push item', () => {
-        const stack = new Stack(PARAMS.StackLimit);
+        const stack = new Stack();
         const value = BigInt(5);
 
         stack.push(value);
@@ -15,7 +13,7 @@ describe('Stack', () => {
     });
 
     it('should swap top with itself', () => {
-        const stack = new Stack(PARAMS.StackLimit);
+        const stack = new Stack();
         const value = BigInt(5);
 
         stack.push(value);
@@ -25,7 +23,7 @@ describe('Stack', () => {
     });
 
     it('should swap', () => {
-        const stack = new Stack(PARAMS.StackLimit);
+        const stack = new Stack();
         const value1 = BigInt(5);
         const value2 = BigInt(7);
 
@@ -38,7 +36,7 @@ describe('Stack', () => {
     });
 
     it('should dup', () => {
-        const stack = new Stack(PARAMS.StackLimit);
+        const stack = new Stack();
         const value1 = BigInt(5);
         const value2 = BigInt(7);
 
