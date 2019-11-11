@@ -26,6 +26,7 @@ export interface UseMemory {
 export type InstructionData = {
     opCode: OpCode;
     execute: ExecutorSync | ExecutorAsync;
+    isAsync: boolean;
     useGas: UseGas;
     stackRange: StackRange;
     useMemory?: UseMemory;
@@ -39,6 +40,7 @@ export type InstructionData = {
 export class Instruction {
     opCode: OpCode;
     execute: ExecutorSync | ExecutorAsync;
+    isAsync: boolean;
     useGas: UseGas;
     minStack: number;
     maxStack: number;
@@ -52,6 +54,7 @@ export class Instruction {
     constructor(data: InstructionData) {
         this.opCode = data.opCode;
         this.execute = data.execute;
+        this.isAsync = data.isAsync;
         this.useGas = data.useGas;
         this.useMemory = data.useMemory;
         this.halts = Boolean(data.halts);
@@ -81,5 +84,21 @@ export class Instruction {
         if (state.stack.length > this.maxStack) {
             throw new VmError(ERROR.STACK_OVERFLOW);
         }
+    }
+}
+
+export type InstructionSyncData = Omit<InstructionData, 'isAsync'>;
+
+export class InstructionSync extends Instruction {
+    constructor(syncData: InstructionSyncData) {
+        super({ ...syncData, isAsync: false });
+    }
+}
+
+export type InstructionAsyncData = Omit<InstructionData, 'isAsync'>;
+
+export class InstructionAsync extends Instruction {
+    constructor(asyncData: InstructionAsyncData) {
+        super({ ...asyncData, isAsync: true });
     }
 }
