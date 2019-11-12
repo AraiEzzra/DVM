@@ -2,26 +2,29 @@ import fs from 'fs';
 
 export const TESTDATA_ETHEREUM_FOLDER = 'test/testdata-ethereum';
 
-export type TestMatcherFile<T> = {
+export type Path<T> = {
     path: string;
-    test: T
+    data: T
 };
 
-// TODO replace any to Generator type
-export type TestMatcherProcess<T> = any;
+export type TestMatcherProcess<File, Json> = (file: Path<File>) => Generator<Path<Json>>;
 
-export class TestMatcher<T> {
+export class TestMatcher<File, Json> {
 
     private folder: string;
 
     private skipTests: Array<RegExp>;
 
-    private processFunc: TestMatcherProcess<T>;
+    private processFunc: TestMatcherProcess<File, Json>;
 
     constructor(folder: string) {
         this.folder = folder;
         this.skipTests = [];
     }
+
+    get name(): string {
+        return this.folder;
+    } 
 
     skip(path: string) {
         this.skipTests.push(new RegExp(path));
@@ -31,11 +34,11 @@ export class TestMatcher<T> {
         return this.skipTests.some(reg => reg.test(path));
     }
 
-    process(processFunc: TestMatcherProcess<T>) {
+    process(processFunc: TestMatcherProcess<File, Json>) {
         this.processFunc = processFunc;
     }
 
-    private *loadTests(): Iterable<TestMatcherFile<T>> {
+    private *loadTests(): Iterable<Path<File>> {
         const path = `${TESTDATA_ETHEREUM_FOLDER}/${this.folder}`;
         for (const folder of fs.readdirSync(path)) {
             const folderPath = `${path}/${folder}`;
@@ -45,20 +48,20 @@ export class TestMatcher<T> {
                     const txt = fs.readFileSync(filePath, 'utf8');
                     yield {
                         path: `${folder}/${file}`.replace(/\.json$/, ''),
-                        test: JSON.parse(txt)
+                        data: JSON.parse(txt)
                     };
                 }
             }
         }
     }
 
-    private *tests() {
+    private *tests(): Iterable<Path<Json>> {
         for (const testCases of this.loadTests()) {
             yield* this.processFunc(testCases);
         }
     }
 
-    *[Symbol.iterator](): IterableIterator<TestMatcherFile<T>> {
+    *[Symbol.iterator](): IterableIterator<Path<Json>> {
         for (const test of this.tests()) {
             if (!this.isSkip(test.path)) {
                 yield test;
@@ -66,7 +69,7 @@ export class TestMatcher<T> {
         }
     }
 
-    *force(path: string) {
+    *force(path: string): Iterable<Path<Json>> {
         const reg = new RegExp(path);
 
         for (const test of this.tests()) {

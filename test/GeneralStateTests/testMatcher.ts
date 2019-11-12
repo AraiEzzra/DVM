@@ -1,18 +1,18 @@
 import { TestFile, TestJSON } from 'test/GeneralStateTests/TestsJSON';
-import { TestMatcher, TestMatcherFile } from 'test/utils/TestMatcher';
+import { TestMatcher, Path } from 'test/runner/TestMatcher';
 
 export const FORK = 'ConstantinopleFix';
 
-export const testMatcher = new TestMatcher<TestJSON>('GeneralStateTests');
+export const testMatcher = new TestMatcher<TestFile, TestJSON>('GeneralStateTests');
 
-testMatcher.process(function* (file: TestMatcherFile<TestFile>) {
-    for (const test of Object.values(file.test)) {
-        const posts = test.post[FORK];
+testMatcher.process(function* (file: Path<TestFile>) {
+    for (const data of Object.values(file.data)) {
+        const posts = data.post[FORK];
         if (Array.isArray(posts)) {
             for (const [index, post] of posts.entries()) {
                 yield {
                     path: `${file.path}/${index}`,
-                    test: { ...test, post }
+                    data: { ...data, post }
                 };
             }
         }

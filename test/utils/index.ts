@@ -39,3 +39,15 @@ export const logsToHash = (logs: Array<Log>): Buffer => {
     const value = logs.map(item => Object.values(item));
     return keccak256(rlp.encode(value));
 };
+
+export const getArgv = (): Object => {
+    const options = {};
+    for (const arg of process.argv.slice(2)) {
+        const match = arg.match(/--(\w+)=+(.+)/);
+        if (match) {
+            const [_, name, value] = match;
+            options[name] = value;
+        }
+    }
+    return options;
+};
