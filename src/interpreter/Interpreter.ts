@@ -1,8 +1,8 @@
 import { State } from 'src/interpreter/State';
 import { VM } from 'src/VM';
 import { Contract } from 'src/Contract';
-import { InstructionsIterable } from 'src/interpreter/InstructionsIterable';
 import { ExecutionRevertedError } from 'src/exceptions';
+import { getInstruction } from 'src/interpreter/Instructions';
 
 export type InterpreterResult = {
     returnData: Buffer;
@@ -68,9 +68,23 @@ export class Interpreter {
     }
 
     private async runState(state: State): Promise<InterpreterResult> {
-        const instructions = new InstructionsIterable(state);
+        const length = state.contract.code.length;
 
-        for (const instruction of instructions) {
+        while (state.programCounter < length) {
+
+            // Need to fix "Check failed: !isolate->has_scheduled_exception().";
+            if (state.programCounter === 0) {
+                await Promise.resolve();
+            }
+
+            const opCode = state.contract.code[state.programCounter];
+            const instruction = getInstruction(opCode);
+
+            state.opCode = opCode;
+
+            if (!instruction.jumps) {
+                state.programCounter++;
+            }
 
             instruction.verifyState(state);
 
@@ -82,7 +96,9 @@ export class Interpreter {
                 instruction.useMemory(state);
             }
 
-            const returnData = await instruction.execute(state);
+            const returnData = <Buffer>(instruction.isAsync
+                ? await instruction.execute(state)
+                : instruction.execute(state));
 
             if (instruction.returns) {
                 state.returnData = returnData;

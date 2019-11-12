@@ -353,12 +353,6 @@ export const opSstore = (state: State): Buffer => {
     const key = toBufferBE(state.stack.pop(), 32);
     const value = bigIntToBuffer(state.stack.pop());
 
-    state.vm.emit('sstore', [
-        state.contract.address.toString('hex'),
-        key.toString('hex'),
-        value.toString('hex')
-    ]);
-
     state.vm.storage.setValue(state.contract.address, key, value);
 
     return null;
